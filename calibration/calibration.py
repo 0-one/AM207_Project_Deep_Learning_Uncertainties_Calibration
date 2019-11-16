@@ -147,6 +147,7 @@ low, mid, high = np.percentile(posterior_predictive, [2.5, 50, 97.5], axis=1)
 plt.fill_between(x_test, low, high, alpha=0.2, label='95% Predictive Interval')
 plt.plot(x_test, mid, color='tab:red', label='Median Prediction');
 plt.scatter(x, y, color='tab:grey', alpha=0.5, label='Observations')
+plt.gca().set(xlabel='X', ylabel='Y', title='Miscalibrated Posterior Predictive')
 plt.legend();
 
 
@@ -223,5 +224,3 @@ plt.plot([0, 1], [0, 1], color='tab:grey', linestyle='--')
 plt.xlabel('Predicted Cumulative Distribution')
 plt.ylabel('Empirical Cumulattive Distribution')
 plt.title('Calibration Dataset');
-
-
