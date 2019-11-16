@@ -32,7 +32,7 @@
 #
 # In practice, for complicated bayesian models, we do not have the analytical form of the posterior predictive CDF readily available. The values of posterior predictive are generated from the samples of the posterior. In these cases, we can compare the values of $y_t$ against the set of posterior predictive samples and obtain the percentiles.
 #
-# Let us define the set of posterior predictive samples (using posterior samples and then evaluating at $x_t$) as $S_t=\left\{s_{t_n}\sim h(x_t)\right\}_{n=1}^N$, where $N$ is the number of posterior samples and $h(x_t)$ is the pdf of the posterior predictive at $x_t$.
+# Let us denote the set of posterior predictive samples (using posterior samples and then evaluating at $x_t$) as $S_t=\left\{s_{t_n}\sim h(x_t)\right\}_{n=1}^N$, where $N$ is the number of posterior samples and $h(x_t)$ is the pdf of the posterior predictive at $x_t$.
 #
 # Then, without closed form of the posterior predictive CDF, we can approximate $\left[H(x_t)\right](y_t)$ as:
 #
@@ -54,7 +54,7 @@
 # Concretely, for models without closed form posterior predictive CDF, the calibration algorithm is restated as:
 # 1. Generate $N$ samples from the posterior, $\theta = \left\{\theta_n, n=1\ldots N\right\}$.
 # 2. For each observation, $t \in 1\ldots T$
-#     * Generate $N$ samples of posterior predictive, $s_{t_n}$, from $\theta$, the posterior samples in step (1), evaluated at $x_t$
+#     * Generate $N$ samples of posterior predictive, $s_{t_n}$, from $\theta$ and evaluated at $x_t$
 #     * Let $p_t$ be the percentile of $y_t$. Estimate the percentile of $y_t$ as
 #     $$p_t = \widehat{\left[H(x_t)\right](y_t)} = \left|\left\{s_{t_n}\mid s_{t_n} \le y_t,n=1\ldots N\right\}\right|/N$$
 # 3. For each $t$
@@ -66,7 +66,7 @@
 # 4. Construct $\mathcal{D} = \left\{\left(\widehat{\left[H\left(x_t\right)\right]\left(y_t\right)}, \hat P\left(\widehat{\left[H\left(x_t\right)\right]\left(y_t\right)}\right)\right)\right\}_{t=1}^T$
 # 5. Train calibration tranformation using $\mathcal{D}$ via isotonic regression (or other models)
 
-# **Possible use in calibration error metric:** This percentile approximation may also be used to as part of calculation of the calibration error metric as defined in equation (9) of the paper.
+# **Possible use in calibration error metric:** This percentile approximation may also be used as part of calculation of the calibration error metric as defined in equation (9) of the paper.
 
 # **Draft Implementation**
 
@@ -167,7 +167,7 @@ def calculate_percentiles(samples, y):
                 calibration algorithm.
 
     Returns:
-        percentiles of each of the y values, shape (T,)
+        percentile of each of the y values, shape (T,)
     '''
     N = samples.shape[1]
 
