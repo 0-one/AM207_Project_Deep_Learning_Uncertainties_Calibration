@@ -224,5 +224,5 @@ predicted_quantiles, empirical_quantiles = make_cal_dataset(y[:, np.newaxis], x,
 plt.scatter(predicted_quantiles, empirical_quantiles)
 plt.plot([0, 1], [0, 1], color='tab:grey', linestyle='--')
 plt.xlabel('Predicted Cumulative Distribution')
-plt.ylabel('Empirical Cumulattive Distribution')
+plt.ylabel('Empirical Cumulative Distribution')
 plt.title('Calibration Dataset');
