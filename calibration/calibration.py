@@ -55,16 +55,18 @@
 # 1. Generate $N$ samples from the posterior, $\theta = \left\{\theta_n, n=1\ldots N\right\}$.
 # 2. For each observation, $t \in 1\ldots T$
 #     * Generate $N$ samples of posterior predictive, $s_{t_n}$, from $\theta$ and evaluated at $x_t$
-#     * Let $p_t$ be the percentile of $y_t$. Estimate the percentile of $y_t$ as
+#     * Let $p_t$ be the quantile of $y_t$. Estimate the quantile of $y_t$ as
 #     $$p_t = \widehat{\left[H(x_t)\right](y_t)} = \left|\left\{s_{t_n}\mid s_{t_n} \le y_t,n=1\ldots N\right\}\right|/N$$
 # 3. For each $t$
 #     * calculate $\hat P\left(\widehat{\left[H\left(x_t\right)\right]\left(y_t\right)}\right) = \hat P\left(p_t\right)$ as
 #     $$\hat P\left(p_t\right) = \left|\left\{p_u\mid p_u\lt p_t, u=1\ldots T\right\}\right|/T
 #     $$
-#     That is, find the proportion of observations that have lower percentile values than that of the current observation.
+#     That is, find the proportion of observations that have lower quantile values than that of the current observation.
 #
 # 4. Construct $\mathcal{D} = \left\{\left(\widehat{\left[H\left(x_t\right)\right]\left(y_t\right)}, \hat P\left(\widehat{\left[H\left(x_t\right)\right]\left(y_t\right)}\right)\right)\right\}_{t=1}^T$
-# 5. Train calibration tranformation using $\mathcal{D}$ via isotonic regression (or other models)
+# 5. Train calibration transformation using $\mathcal{D}$ via isotonic regression (or other models). Running prediction on the trained model results in a transformation $R$, $[0,1] \to [0,1]$. We can compose the calibrated model as $R\circ H\left(x_t\right)$.
+# 6. To find the calibrated confidence intervals, we need to remap the original upper and lower limits. For example, the upper limit $y_{t\ high}$ is mapped to the calibrated value $y_{t\ high}'$ as:
+# $$y_{t\ high}'=\left[H\left(x_t\right)\right]^{-1}\left(R^{-1}\left\{\left[H\left(x_t\right)\right]\left(y_{t\ high}\right)\right\}\right)$$
 
 # **Possible use in calibration error metric:** This percentile approximation may also be used as part of calculation of the calibration error metric as defined in equation (9) of the paper.
 
