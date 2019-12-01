@@ -77,6 +77,7 @@ import warnings
 
 import numpy as np
 import pymc3 as pm
+from sklearn.isotonic import IsotonicRegression
 from sklearn.preprocessing import PolynomialFeatures
 
 import matplotlib.pyplot as plt
@@ -226,3 +227,25 @@ plt.plot([0, 1], [0, 1], color='tab:grey', linestyle='--')
 plt.xlabel('Predicted Cumulative Distribution')
 plt.ylabel('Empirical Cumulative Distribution')
 plt.title('Calibration Dataset');
+
+# +
+# Train isotonic regression in reverse mode
+ir = IsotonicRegression(out_of_bounds='clip')
+ir.fit(empirical_quantiles, predicted_quantiles)
+
+# Find the values of calibrated quantiles
+calibrated_quantiles = ir.predict([0.025, 0.5, 0.975])
+
+# +
+# Plot the posterior predictive
+low, mid, high = np.percentile(posterior_predictive, [2.5, 50, 97.5], axis=1)
+plt.fill_between(x_test, low, high, alpha=0.2, label='95% Predictive Interval')
+plt.plot(x_test, mid, color='tab:red', label='Predicted Median')
+
+low, mid, high = np.quantile(posterior_predictive, calibrated_quantiles, axis=1)
+plt.fill_between(x_test, low, high, alpha=0.2, label='95% Calibrated Interval')
+plt.plot(x_test, mid, color='tab:orange', linestyle='-.', label='Calibrated Median')
+
+plt.scatter(x, y, color='tab:grey', alpha=0.5, label='Observations')
+plt.gca().set(xlabel='X', ylabel='Y', title='Quantile Calibrated Posterior Predictive')
+plt.legend();
