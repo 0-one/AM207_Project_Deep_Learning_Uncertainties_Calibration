@@ -64,8 +64,8 @@ plt.rc("figure", dpi=100)
 
 
 # + {"slideshow": {"slide_type": "skip"}}
-def calculate_percentiles(samples, y):
-    """ Function to compute percentiles of y within the given samples.
+def calculate_quantiles(samples, y):
+    """ Function to compute quantiles of y within the given samples.
 
     For efficiency, this function does not distinguish even and odd
     number of samples, N. This should not really be an issue for large
@@ -79,7 +79,7 @@ def calculate_percentiles(samples, y):
                 calibration algorithm.
 
     Returns:
-        percentile of each of the y values, shape (T,)
+        quantile of each of the y values, shape (T,)
     """
     N = samples.shape[1]
 
@@ -106,14 +106,14 @@ def make_cal_dataset(y, post_pred):
     T = y.shape[0]
     N = post_pred.shape[1]
 
-    # compute percentiles of y observation
-    # percent_y.shape = (T,)
-    percent_y = calculate_percentiles(post_pred, y)
+    # compute quantiles of y observation
+    # quant_y.shape = (T,)
+    quant_y = calculate_quantiles(post_pred, y)
 
     # p_hat.shape = (T,)
-    p_hat = calculate_percentiles(percent_y.reshape(-1, T), percent_y.reshape(T, -1))
+    p_hat = calculate_quantiles(quant_y.reshape(-1, T), quant_y.reshape(T, -1))
 
-    return (percent_y, p_hat)
+    return (quant_y, p_hat)
 
 
 def generate_data(func, points, seed=0):
@@ -650,8 +650,8 @@ from statsmodels.distributions.empirical_distribution import monotone_fn_inverte
 
 def calibrate_model_pred(R, get_post_pred, posterior_samples, x, y):
     posterior_predictive_samples = get_post_pred(posterior_samples, x)
-    emp_cdf = lambda uncal_y: calculate_percentiles(posterior_predictive_samples,
-                                                    uncal_y)
+    emp_cdf = lambda uncal_y: calculate_quantiles(posterior_predictive_samples,
+                                                  uncal_y)
     y_p = emp_cdf(y)
     inv_R = monotone_fn_inverter(cal_transform, y_p)
     inv_H = monotone_fn_inverter(emp_cdf, inv_R)

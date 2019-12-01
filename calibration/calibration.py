@@ -30,7 +30,7 @@
 
 # **Implementation**
 #
-# In practice, for complicated bayesian models, we do not have the analytical form of the posterior predictive CDF readily available. The values of posterior predictive are generated from the samples of the posterior. In these cases, we can compare the values of $y_t$ against the set of posterior predictive samples and obtain the percentiles.
+# In practice, for complicated bayesian models, we do not have the analytical form of the posterior predictive CDF readily available. The values of posterior predictive are generated from the samples of the posterior. In these cases, we can compare the values of $y_t$ against the set of posterior predictive samples and obtain the quantiles.
 #
 # Let us denote the set of posterior predictive samples (using posterior samples and then evaluating at $x_t$) as $S_t=\left\{s_{t_n}\sim h(x_t)\right\}_{n=1}^N$, where $N$ is the number of posterior samples and $h(x_t)$ is the pdf of the posterior predictive at $x_t$.
 #
@@ -40,7 +40,7 @@
 # \widehat{\left[H(x_t)\right](y_t)} = \left|\left\{s_{t_n}\mid s_{t_n} \le y_t,n=1\ldots N\right\}\right|/N
 # $$
 #
-# That is, we simply count the proportion of $s_{t_n}$ samples that are less than $y_t$. This gives the estimated percentile of $y_t$ at $x_t$ in the posterior predictive distribution.
+# That is, we simply count the proportion of $s_{t_n}$ samples that are less than $y_t$. This gives the estimated quantile of $y_t$ at $x_t$ in the posterior predictive distribution.
 #
 # After calculating $\widehat{\left[H(x_t)\right](y_t)}$ for all $t$ (all observations), we can then evaluate $\hat P$ directly for each $t$.
 #
@@ -68,7 +68,7 @@
 # 6. To find the calibrated confidence intervals, we need to remap the original upper and lower limits. For example, the upper limit $y_{t\ high}$ is mapped to the calibrated value $y_{t\ high}'$ as:
 # $$y_{t\ high}'=\left[H\left(x_t\right)\right]^{-1}\left(R^{-1}\left\{\left[H\left(x_t\right)\right]\left(y_{t\ high}\right)\right\}\right)$$
 
-# **Possible use in calibration error metric:** This percentile approximation may also be used as part of calculation of the calibration error metric as defined in equation (9) of the paper.
+# **Possible use in calibration error metric:** This quantile approximation may also be used as part of calculation of the calibration error metric as defined in equation (9) of the paper.
 
 # **Draft Implementation**
 
@@ -154,8 +154,8 @@ plt.legend();
 
 
 # +
-def calculate_percentiles(samples, y):
-    ''' Function to compute percentiles of y within the given samples.
+def calculate_quantiles(samples, y):
+    ''' Function to compute quantiles of y within the given samples.
     
     For efficiency, this function does not distinguish even and odd
     number of samples, N. This should not really be an issue for large
@@ -169,7 +169,7 @@ def calculate_percentiles(samples, y):
                 calibration algorithm.
 
     Returns:
-        percentile of each of the y values, shape (T,)
+        quantile of each of the y values, shape (T,)
     '''
     N = samples.shape[1]
 
@@ -202,26 +202,26 @@ def make_cal_dataset(y, X, thetas, forward):
     # post_pred.shape = (T, N)
     post_pred = forward(X, thetas)
 
-    # compute percentiles of y observation
-    # percent_y.shape = (T,)
-    percent_y = calculate_percentiles(post_pred, y)
+    # compute quantiles of y observation
+    # quant_y.shape = (T,)
+    quant_y = calculate_quantiles(post_pred, y)
 
     # p_hat.shape = (T,)
-    p_hat = calculate_percentiles(percent_y.reshape(-1, T),
-                                 percent_y.reshape(T, -1))
+    p_hat = calculate_quantiles(quant_y.reshape(-1, T),
+                                quant_y.reshape(T, -1))
 
 
-    return(percent_y, p_hat)
+    return(quant_y, p_hat)
 
 # +
 # Use unrealistically low noise to generate the posterior predictive
 forward = lambda X, thetas: simulate_posterior_predictive(X, thetas, noise=0.5)
 
 # Construct the calibration dataset
-predicted_percentiles, empirical_percentiles = make_cal_dataset(y[:, np.newaxis], x, coefs, forward)
+predicted_quantiles, empirical_quantiles = make_cal_dataset(y[:, np.newaxis], x, coefs, forward)
 # -
 
-plt.scatter(predicted_percentiles, empirical_percentiles)
+plt.scatter(predicted_quantiles, empirical_quantiles)
 plt.plot([0, 1], [0, 1], color='tab:grey', linestyle='--')
 plt.xlabel('Predicted Cumulative Distribution')
 plt.ylabel('Empirical Cumulattive Distribution')
