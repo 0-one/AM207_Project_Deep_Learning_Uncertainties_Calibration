@@ -130,8 +130,7 @@ plot_posterior_predictive(x_test, posterior_predictive, func=func, df=df,
                                 f'{width} Nodes in 1 Hidden Layer')
 diagnostics = (f'Minimum ESS: {tests.ess_mean.min():,.2f}\n'
                f'Max Gelman-Rubin: {tests.r_hat.max():.2f}')
-plt.gcf().text(0.95, 0.15, diagnostics)
-plt.savefig(f"NUTS_hidden_1_width_{width}_sigma_{sigma}_noise_{noise}.png", dpi=plt.gcf().dpi, bbox_inches="tight")
+plt.gcf().text(0.95, 0.15, diagnostics);
 
 # +
 # Simulate data from the posterior predictive using ADVI approximation of the posterior
