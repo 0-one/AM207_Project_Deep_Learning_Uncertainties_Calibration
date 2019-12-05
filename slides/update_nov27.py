@@ -642,7 +642,7 @@ plot_distributions(df, posterior_predictive,
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Results of calibration
 
-# +
+# + {"slideshow": {"slide_type": "skip"}}
 # Remove the if statement below when all of the procedures are implemented
 INVERTER = False
 
