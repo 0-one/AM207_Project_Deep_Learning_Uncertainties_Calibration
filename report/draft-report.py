@@ -132,7 +132,7 @@ def sample_and_plot(df, func, *, hidden, width, sigma, noise, num_samples, num_w
     Y = df[["y"]].values
     X_test = numpy.linspace(X.min(), X.max(), num=1000)[:, numpy.newaxis]
     
-    # Instantiate the model with prior standard deviation and likelihood noise
+    # Instantiate the model with a network architecture, prior standard deviation and likelihood noise
     model = partial(feedforward, X=X, Y=Y, width=width, hidden=hidden, sigma=sigma, noise=noise)
 
     # Run the No-U-Turn sampler
@@ -154,6 +154,9 @@ def sample_and_plot(df, func, *, hidden, width, sigma, noise, num_samples, num_w
     message = ('Minimum ESS: {min_ess:,.2f}\n'
                'Max Gelman-Rubin: {max_rhat:.2f}').format(**diagnostics)
     plt.gcf().text(0.95, 0.15, message)
+    
+    # Return the fitted MCMC object to enable detailed diagnostics, e.g. mcmc.print_summary()
+    return mcmc
 
 
 # + {"slideshow": {"slide_type": "-"}}
@@ -177,7 +180,7 @@ sampler_params = {
 }
 
 # Run the No-U-Turn sampler, generate the posterior predictive and plot
-sample_and_plot(df, func, **model_params, **sampler_params)
+mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 # + {"slideshow": {"slide_type": "-"}, "cell_type": "markdown"}
 # Naturally, our claims regarding the adequacy of epistemic uncertainty are subjective due to the absence of universal quantitative metrics.
 
@@ -194,7 +197,7 @@ model_params = {
     "noise": 0.5,
 }
 # Run the No-U-Turn sampler, generate the posterior predictive and plot
-sample_and_plot(df, func, **model_params, **sampler_params)
+mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Prior: Too Narrow
@@ -209,7 +212,7 @@ model_params = {
     "noise": 0.5,
 }
 # Run the No-U-Turn sampler, generate the posterior predictive and plot
-sample_and_plot(df, func, **model_params, **sampler_params)
+mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Prior: Extremely Restrictive
@@ -224,7 +227,7 @@ model_params = {
     "noise": 0.5,
 }
 # Run the No-U-Turn sampler, generate the posterior predictive and plot
-sample_and_plot(df, func, **model_params, **sampler_params)
+mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Likelihood Function
@@ -239,23 +242,114 @@ model_params = {
     "noise": 0.5,
 }
 # Run the No-U-Turn sampler, generate the posterior predictive and plot
-sample_and_plot(df, func, **model_params, **sampler_params)
+mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # Wrong Noise
+# # Link Between Prior and Network Architecture
 #
-# The noise in the likelihood function corresponds to aleatoric uncertainty.
+# The appropriate level of the prior variance depends on the network complexity. A simpler network with 10 nodes and the same prior variance as our original benchmark model predicts much lower epistemic uncertainty. Therefore, the prior has to be selected for each particular network configuration.
 
 # + {"slideshow": {"slide_type": "-"}}
+model_params = {
+    "hidden": 1,
+    "width": 10,
+    "sigma": 1.25,
+    "noise": 0.5,
+}
+# Run the No-U-Turn sampler, generate the posterior predictive and plot
+mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Wrong Noise: Too High
+#
+# The noise in the likelihood function corresponds to aleatoric uncertainty. The effect of the wrong noise specification is that aleatoric uncertainty is captured incorrectly. In the model below the noise is still Gaussian, but has a higher variance than the true one:
+# -
+
+model_params = {
+    "hidden": 1,
+    "width": 50,
+    "sigma": 1.25,
+    "noise": 1.0,
+}
+# Run the No-U-Turn sampler, generate the posterior predictive and plot
+mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
+
+# + {"slideshow": {"slide_type": "-"}, "cell_type": "markdown"}
+# This might be a good candidate for calibration. Alternatively, one could find ways for the network to learn the noise from the data or put an additional prior on the variance of the noise.
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Wrong Noise: Too Small
+#
+# Similarly, if the noise is too small, aleatoric uncertainty is unrealistically low:
+
+# + {"slideshow": {"slide_type": "-"}}
+model_params = {
+    "hidden": 1,
+    "width": 50,
+    "sigma": 1.25,
+    "noise": 0.25,
+}
+# Run the No-U-Turn sampler, generate the posterior predictive and plot
+mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Approximate Inference
+#
+# Using approximate methods of inference is also likely to lead to a miscalibrated posterior predictive. In the example below, Variational Inference with reparametrization on a network with 50 nodes produces too low epistemic uncertainty and slightly larger aleatoric uncertainty. Calibration may be used for correcting the latter.
+
+# + {"slideshow": {"slide_type": "skip"}}
+def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_rate):
+    """A helper function to instantiate the model, approximate the posterior using Variational Inference
+    with reparametrization and isotropic Gaussians, simulate the posterior predictive and plot it
+    against the observations and the true function.
+    """
+    # Observations
+    X = df[["x"]].values
+    Y = df[["y"]].values
+    X_test = numpy.linspace(X.min(), X.max(), num=1000)[:, numpy.newaxis]
+    
+    # Instantiate the model with a network architecture, prior standard deviation and likelihood noise
+    model = partial(feedforward, X=X, Y=Y, width=width, hidden=hidden, sigma=sigma, noise=noise)
+
+    # Approximate the posterior using Automatic Differentiation Variational Inference
+    vi = fit_advi(model, num_iter=num_iter, learning_rate=learning_rate, seed=0)
+    
+    # Generate the posterior predictive and plot the results
+    posterior_predictive = simulate_pp(model, vi, X_test, n_samples=1000, seed=1)
+    plot_posterior_predictive(
+        X_test,
+        posterior_predictive,
+        func=func,
+        df=df,
+        title=f"BNN with {width} Nodes in {hidden} Hidden Layer{'' if hidden == 1 else 's'},\n"
+        f"Weight Uncertainty {sigma}, Noise {noise}, VI Approximation",
+    )
+    # Return the variation inference object to enable diagnostics, e.g. vi.plot_loss()
+    return vi
+
 
 # + {"slideshow": {"slide_type": "-"}}
+model_params = {
+    "hidden": 1,
+    "width": 50,
+    "sigma": 1.25,
+    "noise": 0.5,
+}
+
+vi_params = {
+    "num_iter": 500_000,
+    "learning_rate": 0.001,
+}
+
+# Approximate the posterior with Variational Inference, generate the posterior predictive and plot it
+vi = fit_and_plot(df, func, **model_params, **vi_params)
 
 
+# + {"slideshow": {"slide_type": "skip"}}
+# Plot the negative ELBO for diagnostics
+vi.plot_loss()
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Related Work

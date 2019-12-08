@@ -12,6 +12,8 @@ from numpyro.infer import MCMC, NUTS, SVI
 from numpyro.optim import Adam
 from numpyro.contrib.autoguide import AutoContinuousELBO, AutoDiagonalNormal
 
+import matplotlib.pyplot as plt
+
 
 def sample(
     model,
