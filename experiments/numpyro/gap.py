@@ -87,7 +87,6 @@ posterior_predictive = simulate_posterior_predictive(model, mcmc, X_test, seed=1
 plot_posterior_predictive(X_test, posterior_predictive, func=func, df=df,
                           title=f'NUTS, Weight Uncertainty {sigma}, Noise {noise},\n'
                                 f'{width} Nodes in {hidden} Hidden Layer')
-# # Variational Inference
 
 # Approximate the posterior using Automatic Differentiation Variational Inference
 vi = advi(model, num_iter=500_000, learning_rate=0.001, seed=0)
