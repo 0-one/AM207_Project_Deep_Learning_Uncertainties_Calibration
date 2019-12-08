@@ -49,8 +49,9 @@ numpyro.set_host_device_count(2)
 # Analysis of the paper by Kuleshov et al. (2018)
 #
 # Project team: Piotr Pekala, Benjamin Yuen, Dmitry Vukolov, Alp Kutlualp
-#
-# ### Outline
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Outline
 #
 # 1. Problem statement: miscalibration and its sources
 # 2. Related work
@@ -58,6 +59,9 @@ numpyro.set_host_device_count(2)
 # 4. Experiments
 # 5. Evaluation of the claims
 # 6. Future work
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Problem Statement
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # The Issue of Miscalibration
@@ -239,3 +243,6 @@ sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "-"}}
 
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Related Work
