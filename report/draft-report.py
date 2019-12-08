@@ -21,7 +21,7 @@
 # + {"slideshow": {"slide_type": "skip"}}
 from functools import partial
 
-# Regular Numpy
+# Regular Numpy (without an autograd/JAX wrapper around it)
 import numpy
 import numpyro
 import scipy.stats
