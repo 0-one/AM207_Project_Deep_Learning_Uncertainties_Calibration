@@ -135,7 +135,7 @@ def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_ra
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # The Issue of Miscalibration
 #
-# **Problem statement:** Proper quantification of uncertainty is crucial for applying statistical models to real-world situations. The Bayesian approach to modeling provides us with a principled way of obtaining such uncertainty estimates. Yet, due to various reasons, such estimates are often inaccurate. For example, a 95% posterior predictive interval does not contain the true outcome with 95% probability.
+# **Problem statement:** Proper quantification of uncertainty is crucial for applying statistical models to real-world situations. The Bayesian approach to modeling provides us with a principled way of obtaining such uncertainty estimates. Yet, due to various reasons, such estimates are often inaccurate. For example, a 95% posterior predictive interval does not contain the true outcome with 95% probability. Such a model is *miscalibrated*.
 #
 # **Context:** <mark>why is this problem important or interesting? any examples?</mark>
 
@@ -352,3 +352,20 @@ vi.plot_loss()
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Related Work
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Proposed Calibration Algorithm
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Contribution
+#
+# **Proposition:** The authors of the paper propose a simple **calibration algorithm** for regression. In the case of Bayesian models, the procedure ensures that uncertainty estimates are well-calibrated, given enough data. In other words, the resulting posterior predictive aligns with the data, and every posterior predictive interval  (e.g. the 95% interval) contains the true outcome with a corresponding probability.
+#
+# ###### Unique Contribution:
+# - The procedure is universally applicable to any **regression** model, be it Bayesian or frequentist. It extends previous work on calibration methods for classification.
+# - Compared to alternative approaches, the method doesn't require modification of the model. Instead, the algorithm is applied to the output of any existing model in a postprocessing step.
+#
+# **Claim:** The authors claim that the method outperforms other techniques by consistently producing well-calibrated forecasts, given enough i.i.d. data. Based on their experiments, the procedure also improves predictive performance in several tasks, such as time-series forecasting and reinforcement learning.
+# -
+
+

@@ -13233,7 +13233,7 @@ a.anchor-link {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="The-Issue-of-Miscalibration">The Issue of Miscalibration<a class="anchor-link" href="#The-Issue-of-Miscalibration">&#182;</a></h1><p><strong>Problem statement:</strong> Proper quantification of uncertainty is crucial for applying statistical models to real-world situations. The Bayesian approach to modeling provides us with a principled way of obtaining such uncertainty estimates. Yet, due to various reasons, such estimates are often inaccurate. For example, a 95% posterior predictive interval does not contain the true outcome with 95% probability.</p>
+<h1 id="The-Issue-of-Miscalibration">The Issue of Miscalibration<a class="anchor-link" href="#The-Issue-of-Miscalibration">&#182;</a></h1><p><strong>Problem statement:</strong> Proper quantification of uncertainty is crucial for applying statistical models to real-world situations. The Bayesian approach to modeling provides us with a principled way of obtaining such uncertainty estimates. Yet, due to various reasons, such estimates are often inaccurate. For example, a 95% posterior predictive interval does not contain the true outcome with 95% probability. Such a model is <em>miscalibrated</em>.</p>
 <p><strong>Context:</strong> <mark>why is this problem important or interesting? any examples?</mark></p>
 
 </div>
@@ -74672,6 +74672,29 @@ z
 <h1 id="Related-Work">Related Work<a class="anchor-link" href="#Related-Work">&#182;</a></h1>
 </div>
 </div>
+</div></section></section><section><section>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Proposed-Calibration-Algorithm">Proposed Calibration Algorithm<a class="anchor-link" href="#Proposed-Calibration-Algorithm">&#182;</a></h1>
+</div>
+</div>
+</div></section></section><section><section>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Contribution">Contribution<a class="anchor-link" href="#Contribution">&#182;</a></h1><p><strong>Proposition:</strong> The authors of the paper propose a simple <strong>calibration algorithm</strong> for regression. In the case of Bayesian models, the procedure ensures that uncertainty estimates are well-calibrated, given enough data. In other words, the resulting posterior predictive aligns with the data, and every posterior predictive interval  (e.g. the 95% interval) contains the true outcome with a corresponding probability.</p>
+<h6 id="Unique-Contribution:">Unique Contribution:<a class="anchor-link" href="#Unique-Contribution:">&#182;</a></h6><ul>
+<li>The procedure is universally applicable to any <strong>regression</strong> model, be it Bayesian or frequentist. It extends previous work on calibration methods for classification.</li>
+<li>Compared to alternative approaches, the method doesn't require modification of the model. Instead, the algorithm is applied to the output of any existing model in a postprocessing step.</li>
+</ul>
+<p><strong>Claim:</strong> The authors claim that the method outperforms other techniques by consistently producing well-calibrated forecasts, given enough i.i.d. data. Based on their experiments, the procedure also improves predictive performance in several tasks, such as time-series forecasting and reinforcement learning.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+
 </div></section></section>
 </div>
 </div>
