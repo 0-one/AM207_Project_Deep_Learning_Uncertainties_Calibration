@@ -43,6 +43,75 @@ plt.rc("figure", figsize=(7, 3.5))
 numpyro.set_platform("cpu")
 numpyro.set_host_device_count(2)
 
+
+# + {"slideshow": {"slide_type": "skip"}}
+def sample_and_plot(df, func, *, hidden, width, sigma, noise, num_samples, num_warmup, num_chains):
+    """A helper function to instantiate the model, sample from the posterior, simulate
+    the posterior predictive and plot it against the observations and the true function.
+    """
+    # Observations
+    X = df[["x"]].values
+    Y = df[["y"]].values
+    X_test = numpy.linspace(X.min(), X.max(), num=1000)[:, numpy.newaxis]
+    
+    # Instantiate the model with a network architecture, prior standard deviation and likelihood noise
+    model = partial(feedforward, X=X, Y=Y, width=width, hidden=hidden, sigma=sigma, noise=noise)
+
+    # Run the No-U-Turn sampler
+    mcmc = sample(model, num_samples, num_warmup, num_chains, seed=0, summary=False)
+    
+    # Generate the posterior predictive and plot the results
+    posterior_predictive = simulate_pp(model, mcmc, X_test, seed=1)
+    plot_posterior_predictive(
+        X_test,
+        posterior_predictive,
+        func=func,
+        df=df,
+        title=f"BNN with {width} Nodes in {hidden} Hidden Layer{'' if hidden == 1 else 's'},\n"
+        f"Weight Uncertainty {sigma}, Noise {noise}, NUTS Sampling",
+    )
+    
+    # Print the diagnostic tests
+    diagnostics=get_metrics(mcmc)
+    message = ('Minimum ESS: {min_ess:,.2f}\n'
+               'Max Gelman-Rubin: {max_rhat:.2f}').format(**diagnostics)
+    plt.gcf().text(0.95, 0.15, message)
+    
+    # Return the fitted MCMC object to enable detailed diagnostics, e.g. mcmc.print_summary()
+    return mcmc
+
+
+# + {"slideshow": {"slide_type": "skip"}}
+def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_rate):
+    """A helper function to instantiate the model, approximate the posterior using Variational Inference
+    with reparametrization and isotropic Gaussians, simulate the posterior predictive and plot it
+    against the observations and the true function.
+    """
+    # Observations
+    X = df[["x"]].values
+    Y = df[["y"]].values
+    X_test = numpy.linspace(X.min(), X.max(), num=1000)[:, numpy.newaxis]
+    
+    # Instantiate the model with a network architecture, prior standard deviation and likelihood noise
+    model = partial(feedforward, X=X, Y=Y, width=width, hidden=hidden, sigma=sigma, noise=noise)
+
+    # Approximate the posterior using Automatic Differentiation Variational Inference
+    vi = fit_advi(model, num_iter=num_iter, learning_rate=learning_rate, seed=0)
+    
+    # Generate the posterior predictive and plot the results
+    posterior_predictive = simulate_pp(model, vi, X_test, n_samples=1000, seed=1)
+    plot_posterior_predictive(
+        X_test,
+        posterior_predictive,
+        func=func,
+        df=df,
+        title=f"BNN with {width} Nodes in {hidden} Hidden Layer{'' if hidden == 1 else 's'},\n"
+        f"Weight Uncertainty {sigma}, Noise {noise}, VI Approximation",
+    )
+    # Return the variation inference object to enable diagnostics, e.g. vi.plot_loss()
+    return vi
+
+
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Accurate Uncertainties for Deep Learning Using Calibrated Regression
 #
@@ -116,48 +185,10 @@ df = generate_data(func, points=data_points, seed=4)
 # Plot the data
 plot_true_function(func, df, title=f"True Function: {func.latex}")
 
-
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Proper Posterior Predictive
 #
 # A neural network with 50 nodes in a single hidden layer, well-chosen prior and noise, as well as correctly performed inference using sampling produce a posterior predictive that adequately reflects both epistemic and aleatoric uncertainty:
-
-# + {"slideshow": {"slide_type": "skip"}}
-def sample_and_plot(df, func, *, hidden, width, sigma, noise, num_samples, num_warmup, num_chains):
-    """A helper function to instantiate the model, sample from the posterior, simulate
-    the posterior predictive and plot it against the observations and the true function.
-    """
-    # Observations
-    X = df[["x"]].values
-    Y = df[["y"]].values
-    X_test = numpy.linspace(X.min(), X.max(), num=1000)[:, numpy.newaxis]
-    
-    # Instantiate the model with a network architecture, prior standard deviation and likelihood noise
-    model = partial(feedforward, X=X, Y=Y, width=width, hidden=hidden, sigma=sigma, noise=noise)
-
-    # Run the No-U-Turn sampler
-    mcmc = sample(model, num_samples, num_warmup, num_chains, seed=0, summary=False)
-    
-    # Generate the posterior predictive and plot the results
-    posterior_predictive = simulate_pp(model, mcmc, X_test, seed=1)
-    plot_posterior_predictive(
-        X_test,
-        posterior_predictive,
-        func=func,
-        df=df,
-        title=f"BNN with {width} Nodes in {hidden} Hidden Layer{'' if hidden == 1 else 's'},\n"
-        f"Weight Uncertainty {sigma}, Noise {noise}, NUTS Sampling",
-    )
-    
-    # Print the diagnostic tests
-    diagnostics=get_metrics(mcmc)
-    message = ('Minimum ESS: {min_ess:,.2f}\n'
-               'Max Gelman-Rubin: {max_rhat:.2f}').format(**diagnostics)
-    plt.gcf().text(0.95, 0.15, message)
-    
-    # Return the fitted MCMC object to enable detailed diagnostics, e.g. mcmc.print_summary()
-    return mcmc
-
 
 # + {"slideshow": {"slide_type": "-"}}
 # Parameters of a Bayesian neural network
@@ -179,7 +210,7 @@ sampler_params = {
     "num_warmup": 2000,
 }
 
-# Run the No-U-Turn sampler, generate the posterior predictive and plot
+# Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 # + {"slideshow": {"slide_type": "-"}, "cell_type": "markdown"}
 # Naturally, our claims regarding the adequacy of epistemic uncertainty are subjective due to the absence of universal quantitative metrics.
@@ -196,7 +227,7 @@ model_params = {
     "sigma": 1.8,
     "noise": 0.5,
 }
-# Run the No-U-Turn sampler, generate the posterior predictive and plot
+# Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
@@ -211,7 +242,7 @@ model_params = {
     "sigma": 0.5,
     "noise": 0.5,
 }
-# Run the No-U-Turn sampler, generate the posterior predictive and plot
+# Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
@@ -226,7 +257,7 @@ model_params = {
     "sigma": 0.1,
     "noise": 0.5,
 }
-# Run the No-U-Turn sampler, generate the posterior predictive and plot
+# Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
@@ -241,7 +272,7 @@ model_params = {
     "sigma": 1.25,
     "noise": 0.5,
 }
-# Run the No-U-Turn sampler, generate the posterior predictive and plot
+# Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
@@ -256,7 +287,7 @@ model_params = {
     "sigma": 1.25,
     "noise": 0.5,
 }
-# Run the No-U-Turn sampler, generate the posterior predictive and plot
+# Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 
@@ -272,7 +303,7 @@ model_params = {
     "sigma": 1.25,
     "noise": 1.0,
 }
-# Run the No-U-Turn sampler, generate the posterior predictive and plot
+# Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 
 # + {"slideshow": {"slide_type": "-"}, "cell_type": "markdown"}
@@ -281,7 +312,7 @@ mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Noise: Too Small
 #
-# Similarly, if the noise is too small, aleatoric uncertainty is unrealistically low:
+# Similarly, if the noise is too small, the resulting aleatoric uncertainty captured by the posterior predictive will be unrealistically low:
 
 # + {"slideshow": {"slide_type": "-"}}
 model_params = {
@@ -290,45 +321,13 @@ model_params = {
     "sigma": 1.25,
     "noise": 0.25,
 }
-# Run the No-U-Turn sampler, generate the posterior predictive and plot
+# Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
-
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Approximate Inference
 #
 # Using approximate methods of inference is also likely to lead to a miscalibrated posterior predictive. In the example below, Variational Inference with reparametrization on a network with 50 nodes produces too low epistemic uncertainty and slightly larger aleatoric uncertainty. Calibration may be used for correcting the latter.
-
-# + {"slideshow": {"slide_type": "skip"}}
-def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_rate):
-    """A helper function to instantiate the model, approximate the posterior using Variational Inference
-    with reparametrization and isotropic Gaussians, simulate the posterior predictive and plot it
-    against the observations and the true function.
-    """
-    # Observations
-    X = df[["x"]].values
-    Y = df[["y"]].values
-    X_test = numpy.linspace(X.min(), X.max(), num=1000)[:, numpy.newaxis]
-    
-    # Instantiate the model with a network architecture, prior standard deviation and likelihood noise
-    model = partial(feedforward, X=X, Y=Y, width=width, hidden=hidden, sigma=sigma, noise=noise)
-
-    # Approximate the posterior using Automatic Differentiation Variational Inference
-    vi = fit_advi(model, num_iter=num_iter, learning_rate=learning_rate, seed=0)
-    
-    # Generate the posterior predictive and plot the results
-    posterior_predictive = simulate_pp(model, vi, X_test, n_samples=1000, seed=1)
-    plot_posterior_predictive(
-        X_test,
-        posterior_predictive,
-        func=func,
-        df=df,
-        title=f"BNN with {width} Nodes in {hidden} Hidden Layer{'' if hidden == 1 else 's'},\n"
-        f"Weight Uncertainty {sigma}, Noise {noise}, VI Approximation",
-    )
-    # Return the variation inference object to enable diagnostics, e.g. vi.plot_loss()
-    return vi
-
 
 # + {"slideshow": {"slide_type": "-"}}
 model_params = {
