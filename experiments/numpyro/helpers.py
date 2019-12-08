@@ -138,7 +138,7 @@ class ADVIResults:
         plt.title(f"Negative ELBO by Iteration, Final Value {self.losses[-1]:.1f}")
 
 
-def advi(model, num_iter, learning_rate=0.01, seed=0):
+def fit_advi(model, num_iter, learning_rate=0.01, seed=0):
     """Automatic Differentiation Variational Inference using a Normal variational distribution
     with a diagonal covariance matrix.
     """

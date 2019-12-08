@@ -93,7 +93,7 @@ plot_posterior_predictive(
 )
 
 # Approximate the posterior using Automatic Differentiation Variational Inference
-vi = advi(model, num_iter=500_000, learning_rate=0.001, seed=0)
+vi = fit_advi(model, num_iter=500_000, learning_rate=0.001, seed=0)
 vi.plot_loss()
 
 # Generate the posterior predictive and plot the results
