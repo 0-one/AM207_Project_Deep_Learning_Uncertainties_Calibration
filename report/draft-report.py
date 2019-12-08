@@ -115,7 +115,7 @@ def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_ra
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Accurate Uncertainties for Deep Learning Using Calibrated Regression
 #
-# Analysis of the paper by Kuleshov et al. (2018)
+# Analysis of the paper by [Kuleshov et al. (2018)](https://arxiv.org/pdf/1807.00263)
 #
 # Project team: Piotr Pekala, Benjamin Yuen, Dmitry Vukolov, Alp Kutlualp
 
