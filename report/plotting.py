@@ -18,30 +18,34 @@ COLORS = {
 FILL_ALPHA = 0.15
 
 
-def plot_true_function(func, df, title=None):
+def plot_true_function(func, df, title=None, legend=True, ax=None):
     x = np.linspace(df.x.min(), df.x.max(), num=1000)
     distribution = func(x)
     lower, upper = distribution.interval(0.95)
 
-    plt.fill_between(
+    ax = ax or plt.gca()
+    ax.fill_between(
         x, lower, upper, color=COLORS["true"], alpha=FILL_ALPHA, label="True 95% Interval",
     )
-    plt.scatter(df.x, df.y, s=10, color=COLORS["observations"], label="Observations")
-    plt.plot(x, distribution.mean(), color=COLORS["true"], label="True Mean")
+    ax.scatter(df.x, df.y, s=10, color=COLORS["observations"], label="Observations")
+    ax.plot(x, distribution.mean(), color=COLORS["true"], label="True Mean")
     if title is not None:
-        plt.title(title)
-    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
+        ax.set_title(title)
+    if legend:
+        ax.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
 
 
-def plot_posterior_predictive(x, post_pred, title=None, func=None, df=None):
+def plot_posterior_predictive(x, post_pred, func=None, df=None, title=None, legend=True, ax=None):
     """Plot the posterior predictive along with the observations and the true function
     """
+    ax = ax or plt.gca()
+
     if func is not None and df is not None:
-        plot_true_function(func, df)
+        plot_true_function(func, df, legend=legend, ax=ax)
 
     x = x.ravel()
     lower, upper = np.percentile(post_pred, [2.5, 97.5], axis=0)
-    plt.fill_between(
+    ax.fill_between(
         x,
         lower,
         upper,
@@ -49,9 +53,10 @@ def plot_posterior_predictive(x, post_pred, title=None, func=None, df=None):
         alpha=FILL_ALPHA,
         label=f"95% Predictive Interval",
     )
-    plt.plot(x, post_pred.mean(axis=0), color=COLORS["predicted"], label=f"Predicted Mean")
-    plt.title(title)
-    plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
+    ax.plot(x, post_pred.mean(axis=0), color=COLORS["predicted"], label=f"Predicted Mean")
+    ax.set_title(title)
+    if legend:
+        ax.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
 
 
 def plot_illustration(ppc_func, df, conditionals=True, title=None):
@@ -236,7 +241,7 @@ def calibration_plot(predicted_quantiles, model):
     plt.legend()
 
 
-def plot_calibration_results(x, post_pred, qc, df, func):
+def plot_calibration_results(x, post_pred, qc, df, func, figsize=(8.5, 3.5)):
     """Plot the posterior predictive before and after calibration
     """
     x = x.ravel()
@@ -244,7 +249,7 @@ def plot_calibration_results(x, post_pred, qc, df, func):
     quantiles = [q, qc.inverse_transform(q)]
     titles = ["Before Calibration", "After Calibration"]
 
-    fig, ax = plt.subplots(1, 2, figsize=(8.5, 3.5), sharex=True, sharey=True)
+    fig, ax = plt.subplots(1, 2, figsize=figsize, sharex=True, sharey=True)
 
     for i, axis in enumerate(ax):
         # Plot the true function

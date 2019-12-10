@@ -27,8 +27,8 @@ def sample(
 
     Args:
         model: an NumPyro model function
-        num_samples: number of samples to draw
-        num_warmup: number of samples to use for tuning
+        num_samples: number of samples to draw in each chain
+        num_warmup: number of samples to use for tuning in each chain
         num_chains: number of chains to draw (default: {2})
         **kwargs: other arguments to be passed to the model function
         seed: random seed (default: {0})
