@@ -4,14 +4,22 @@ import numpyro.distributions as dist
 
 
 def activation(x):
-    """The non-linearity used in our neural network
+    """The non-linearity used in the neural network
     """
     return np.tanh(x)
 
 
 def feedforward(X, Y, width=5, hidden=1, sigma=1.0, noise=1.0):
     """An implementation of feedforward Bayesian neural network with a fixed width of hidden layers
-    and linear output node.
+    and linear output node using NumPyro.
+
+    Args:
+        X: input array
+        Y: output 1-dimensional array
+        width: number of nodes in each hidden layer (default: {5})
+        hidden: number of hidden layers (default: {1})
+        sigma: the standard deviation of the normal prior on the weights (default: {1.0})
+        noise: the standard deviation of the normal noise in the likelihood (default: {1.0})
     """
     if Y is not None:
         assert Y.shape[1] == 1

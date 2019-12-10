@@ -34,8 +34,9 @@ import matplotlib.pyplot as plt
 # %matplotlib inline
 
 from bnn import feedforward
-from inference import sample, simulate_pp, fit_advi, get_metrics
+from calibration import QuantileCalibration
 from data import generate_data
+from inference import sample, simulate_pp, fit_advi, get_metrics
 from plotting import *
 
 # + {"slideshow": {"slide_type": "skip"}}
@@ -46,6 +47,9 @@ plt.rc("figure", figsize=(7, 3.5))
 # Perform inference using a CPU and 2 cores
 numpyro.set_platform("cpu")
 numpyro.set_host_device_count(2)
+
+# Visualize all posterior predictive checks if in debug mode
+DEBUG = False
 
 
 # + {"slideshow": {"slide_type": "skip"}}
@@ -114,6 +118,55 @@ def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_ra
     )
     # Return the variation inference object to enable diagnostics, e.g. vi.plot_loss()
     return vi
+
+
+# + {"slideshow": {"slide_type": "skip"}}
+def build_model(df, *, hidden, width, sigma, noise):
+    """Instantiate the model with a network architecture, prior standard deviation
+    and likelihood noise.
+    """
+    X = df[["x"]].values
+    Y = df[["y"]].values
+
+    model = partial(feedforward, X=X, Y=Y, width=width, hidden=hidden, sigma=sigma, noise=noise)
+
+    return model
+
+
+# + {"slideshow": {"slide_type": "skip"}}
+def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, num_samples, num_warmup, num_chains):
+    """A helper function to instantiate BNNs for both datasets, sample from the posterior,
+    simulate the posterior predictives and train isotonic regression. 
+    """
+    results = []
+    
+    # Obtain the posterior predictives for both datasets
+    for df in [df_main, df_hold]:
+        # Instantiate the model
+        model = build_model(df, width=width, hidden=hidden, sigma=sigma, noise=noise)
+        # Sample from the posterior using the No-U-Turn sampler
+        mcmc = sample(model, num_samples, num_warmup, num_chains, seed=0, summary=False)
+        X_test = np.linspace(df.x.min(), df.x.max(), num=1000)[:, np.newaxis]
+        # Simulate the posterior predictive for equally spaced values of X for plotting
+        post_pred = simulate_pp(model, mcmc, X_test, seed=1)
+        # Simulate the posterior predictive for all X's in the dataset
+        post_pred_train = simulate_pp(model, mcmc, df[['x']].values, seed=1)
+        results.append({
+            'df': df,
+            'model': model,
+            'mcmc': mcmc,
+            'X_test': X_test,
+            'post_pred': post_pred,
+            'post_pred_train': post_pred_train
+        })
+
+    res_main, res_holdout = results
+    
+    # Train isotonic regression on the hold-out dataset
+    qc = QuantileCalibration()
+    qc.fit(res_holdout['df'].y, res_holdout['post_pred_train'])
+    
+    return res_main, res_holdout, qc
 
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
@@ -196,7 +249,7 @@ plot_true_function(func, df, title=f"True Function: {func.latex}")
 # A neural network with 50 nodes in a single hidden layer, well-chosen prior and noise, as well as correctly performed inference using sampling produce a posterior predictive that adequately reflects both epistemic and aleatoric uncertainty:
 
 # + {"slideshow": {"slide_type": "-"}}
-# Parameters of a Bayesian neural network
+# Parameters of the Bayesian neural network
 model_params = {
     # Number of hidden layers
     "hidden": 1,
@@ -210,7 +263,6 @@ model_params = {
 
 # NUTS sampler parameters
 sampler_params = {
-    "num_chains": 2,
     "num_samples": 2000,
     "num_warmup": 2000,
 }
@@ -564,6 +616,7 @@ display(table)
 predicted_quantiles_test = ppc_quantiles(df_test.y)
 calibration_plot(predicted_quantiles_test, model=ir)
 
+
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Quantitative metrics
 #
@@ -588,3 +641,240 @@ calibration_plot(predicted_quantiles_test, model=ir)
 # **4. Prediction interval coverage probability (PICP)**
 # $$\frac{1}{N}\sum_{n=1}^{N}\mathbb{1}_{y_n\leq\hat{y}_{n}^{high}} \cdot \mathbb{1}_{y_n\geq\hat{y}_{n}^{low}}$$
 # Calculates the share of observations covered by 95% (or any other, selected) predictive intervals. Alignment of the PICP with the probability mass assigned to the predictive interval generating it may misleadingly point to proper calibration if true noise distribution belongs to a different family than the posterior predictive. Requires a large sample of observations. 
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Experiments
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Homoscedastic Dataset
+#
+# Rather than try to reproduce the experiments from the paper we chose to run the calibration algorithm on a series of synthetic datasets. This allows us to analyze the effect of the procedure on different purposefully miscalibrated posterior predictives.
+#
+# The first dataset is a cubic polynomial with homoscedastic Gaussian noise:
+
+# + {"slideshow": {"slide_type": "-"}}
+def polynomial(x):
+    """True data-generating function"""
+    return scipy.stats.norm(loc=0.1 * x ** 3, scale=1)
+
+polynomial.latex = r"$y_i = 0.1x_i^3 + \varepsilon$"
+
+# Generate observations for an equally sized main dataset 
+# and a hold-out dataset to train isotonic regression on
+data_points = [
+    {"n_points": 200, "xlim": [-4, 4]},
+]
+df = generate_data(polynomial, points=data_points, seed=4)
+df_hold = generate_data(polynomial, points=data_points, seed=1)
+
+# Plot the data
+plot_true_function(polynomial, df, title=f"True Function: {polynomial.latex}")
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Low Noise: Calibration Results
+#
+# Through sampling, we perform inference of a BNN that underestimates uncertainty (low variance of the noise in the likelihood). The calibration model is trained on a separated hold-out dataset of the same size. After calibration, the posterior predictive aligns with the data really well:
+
+# + {"slideshow": {"slide_type": "skip"}}
+# Parameters of the Bayesian neural network
+model_params = {
+    "hidden": 1,
+    "width": 10,
+    "sigma": 1.0,
+    "noise": 0.5,
+}
+
+# NUTS sampler parameters
+sampler_params = {
+    "num_samples": 4000,
+    "num_warmup": 4000,
+}
+
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# Ensure that the sampler has converged
+check_convergence(res_main, res_holdout, func=polynomial, debug_mode=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=polynomial)
+
+# + {"slideshow": {"slide_type": "-"}, "cell_type": "markdown"}
+# The calibrated posterior predictive isn't smooth due to sampling, which is especially evident for the extreme quantiles.
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # High Noise: Calibration Results
+#
+# Similarly, excellent results are obtained when we apply the calibration algorithm to a BNN that overestimates uncertainty due to the high variance of the noise in the Gaussian likelihood function. The resulting posterior predictive captures aleatoric uncertainty well:
+
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 10,
+    "sigma": 2.0,
+    "noise": 1.5,
+}
+sampler_params = {
+    "num_samples": 2000,
+    "num_warmup": 2000,
+}
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# Ensure that the sampler has converged
+check_convergence(res_main, res_holdout, func=polynomial, debug_mode=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=polynomial)
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # The Case of Missing Data
+#
+# The next dataset is the one we used previously in our miscalibration examples — a third-degree polynomial with a gap in the middle. This will allow us to evaluate the impact of the calibration algorithm on epistemic uncertainty.
+
+# + {"slideshow": {"slide_type": "-"}}
+# Define the true function and generate observations
+func = lambda x: scipy.stats.norm(loc=0.1 * x ** 3, scale=0.5)
+func.latex = r"$y_i = 0.1x_i^3 + \varepsilon$"
+
+data_points = [
+    {"n_points": 100, "xlim": [-4, -1]},
+    {"n_points": 100, "xlim": [1, 4]},
+]
+df = generate_data(func, points=data_points, seed=7)
+df_hold = generate_data(func, points=data_points, seed=1)
+
+# Plot the data
+plot_true_function(func, df, title=f"True Function: {func.latex}")
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Proper Posterior: Calibration Results
+#
+# We sample from a BNN that produces a reasonably good posterior predictive, both in terms of aleatoric and epistemic uncertainty. After calibration, epistemic uncertainty shrinks, but only slightly. Since our definition of "good" epistemic uncertainty is subjective, the algorithm doesn't seem to ruin a valid model. However, epistemic uncertainty does become more asymmetric than before to calibration:
+
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 10,
+    "sigma": 2.0,
+    "noise": 0.5,
+}
+sampler_params = {
+    "num_samples": 4000,
+    "num_warmup": 4000,
+}
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# Ensure that the sampler has converged
+check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Wrong Prior: Calibration Results
+#
+# The same is true for the posterior predictives that either over- or underestimate uncertainty due to the wrong prior. The calibration algorithm has little effect on epistemic uncertainty:
+
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 10,
+    "sigma": 1.25,
+    "noise": 0.5,
+}
+sampler_params = {
+    "num_samples": 4000,
+    "num_warmup": 4000,
+}
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# Ensure that the sampler has converged
+check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Wrong Noise: Calibration Results
+#   
+# The situation changes when the noise is specified incorrectly *and* there is missing data. Since the algorithm maps predicted quantiles to empirical ones uniformly across all input space, this calibration method produces perfect aleatoric uncertainty, but reduces epistemic uncertainty drastically:
+
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 10,
+    "sigma": 2.0,
+    "noise": 1.0,
+}
+sampler_params = {
+    "num_samples": 2000,
+    "num_warmup": 2000,
+}
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# Ensure that the sampler has converged
+check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Wrong Noise: Calibration Results
+#
+# Analogously, if aleatoric uncertainty is underestimated by the model, after recalibration, it will be aligned with the data as much as possible, while epistemic uncertainty will be blown up. The authors of the method explicitly state that the suggested approach only works given enough i.i.d. data. Here we see one instance of how it fails:
+
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 50,
+    "sigma": 1.25,
+    "noise": 0.25,
+}
+sampler_params = {
+    "num_samples": 2000,  # FIXME: increase the samples sizes
+    "num_warmup": 2000,
+}
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# Ensure that the sampler has converged
+check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Wrong Likelihood: Calibration Results
+#
+# Another case of failure can be observed in the situation when there is bias, i.e. the network is not sufficiently expressive to describe the data due to a combination of the prior and the architecture. In an effort to fit the data the calibration algorithm increases uncertainty uniformly across the whole input space. A much better approach would be to change the bad model, rather than try to recalibrate it:
+
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 50,
+    "sigma": 0.25,
+    "noise": 0.5,
+}
+sampler_params = {
+    "num_samples": 2000,
+    "num_warmup": 2000,
+}
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# Ensure that the sampler has converged
+check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+
+# + {"slideshow": {"slide_type": "notes"}, "cell_type": "markdown"}
+# # Todo List
+#
+# - Additional experiments:
+#     - Variational Inference
+#     - Heteroscedastic noise
+#     - Non-Gaussian noise
+# - Compute the metrics for all the models (calibration error, PICP, log-likehood)
+# - Show calibration plots if appropriate
+# - Evaluate the effect of calibration on point estimates
+# - Test the algorithm's sensitivity to the amount of i.i.d. data
+# - Consider the 90% predictive interval instead of the 95% interval to make the plots more smooth
+# - Add Evaluation of the claims and Future work

@@ -7,12 +7,14 @@ from matplotlib.patches import Rectangle
 
 
 # Colors used for plotting the posterior predictives
-colors = {
+COLORS = {
     "true": "tab:orange",
-    "uncalibrated": "tab:blue",
+    "predicted": "tab:blue",
     "calibrated": "tab:pink",
     "observations": "lightgrey",
 }
+# Transparency for the posterior predictives
+FILL_ALPHA = 0.15
 
 
 def plot_true_function(func, df, title=None):
@@ -21,27 +23,32 @@ def plot_true_function(func, df, title=None):
     lower, upper = distribution.interval(0.95)
 
     plt.fill_between(
-        x, lower, upper, color=colors["true"], alpha=0.1, label="True 95% Interval",
+        x, lower, upper, color=COLORS["true"], alpha=FILL_ALPHA, label="True 95% Interval",
     )
-    plt.scatter(df.x, df.y, s=10, color=colors["observations"], label="Observations")
-    plt.plot(x, distribution.mean(), color=colors["true"], label="True Mean")
+    plt.scatter(df.x, df.y, s=10, color=COLORS["observations"], label="Observations")
+    plt.plot(x, distribution.mean(), color=COLORS["true"], label="True Mean")
     if title is not None:
         plt.title(title)
     plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
 
 
-def plot_posterior_predictive(x, y, title=None, func=None, df=None):
+def plot_posterior_predictive(x, post_pred, title=None, func=None, df=None):
     """Plot the posterior predictive along with the observations and the true function
     """
     if func is not None and df is not None:
         plot_true_function(func, df)
 
     x = x.ravel()
-    lower, upper = np.percentile(y, [2.5, 97.5], axis=0)
+    lower, upper = np.percentile(post_pred, [2.5, 97.5], axis=0)
     plt.fill_between(
-        x, lower, upper, color=colors["uncalibrated"], alpha=0.1, label=f"95% Predictive Interval"
+        x,
+        lower,
+        upper,
+        color=COLORS["predicted"],
+        alpha=FILL_ALPHA,
+        label=f"95% Predictive Interval",
     )
-    plt.plot(x, y.mean(axis=0), color=colors["uncalibrated"], label=f"Predicted Mean")
+    plt.plot(x, post_pred.mean(axis=0), color=COLORS["predicted"], label=f"Predicted Mean")
     plt.title(title)
     plt.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
 
@@ -57,10 +64,15 @@ def plot_illustration(ppc_func, df, conditionals=True, title=None):
     lower, upper = distribution.interval(0.95)
 
     ax.fill_between(
-        x, lower, upper, color=colors["uncalibrated"], alpha=0.1, label="95% Predictive Interval",
+        x,
+        lower,
+        upper,
+        color=COLORS["predicted"],
+        alpha=FILL_ALPHA,
+        label="95% Predictive Interval",
     )
-    ax.scatter(df.x, df.y, s=10, color=colors["observations"], label="Observations")
-    ax.plot(x, distribution.mean(), color=colors["uncalibrated"], label="Predicted Mean")
+    ax.scatter(df.x, df.y, s=10, color=COLORS["observations"], label="Observations")
+    ax.plot(x, distribution.mean(), color=COLORS["predicted"], label="Predicted Mean")
     ax.set(xlabel="X", ylabel="Y")
     if title is not None:
         ax.set_title(title)
@@ -174,7 +186,7 @@ def plot_table(mark_y=False, show_quantiles=None):
 
 
 def plot_ecdf(predicted_quantiles):
-    plt.hist(predicted_quantiles, bins=50, cumulative=True, density=True, alpha=0.5)
+    plt.hist(predicted_quantiles, bins=50, cumulative=True, density=True, alpha=0.3)
     plt.title("CDF of Predicted Quantiles")
     plt.xlabel("Predicted Quantiles, $H(x_t)(y_t)$")
     plt.ylabel(r"Empirical Quantiles, $\hat{P}(p_t)$")
@@ -183,10 +195,10 @@ def plot_ecdf(predicted_quantiles):
 def calibration_plot(predicted_quantiles, model):
     """Visualize a calibration plot suggested by the authors
     """
-    # Choose equally spaced confidence levels
+    # Choose equally spaced quantiles
     expected_quantiles = np.linspace(0, 1, num=11).reshape(-1, 1)
 
-    # Compute the probabilities of predicted quantiles at the discrete confidence levels
+    # Compute the probabilities of predicted quantiles at the discrete quantile levels
     T = predicted_quantiles.shape[0]
     observed_uncalibrated = (predicted_quantiles.reshape(1, -1) <= expected_quantiles).sum(
         axis=1
@@ -194,7 +206,7 @@ def calibration_plot(predicted_quantiles, model):
 
     # Use the model to output the actual probabilities of any quantile
     calibrated_quantiles = model.predict(predicted_quantiles)
-    # Estimate the observed calibrated confidence levels
+    # Estimate the observed calibrated quantiles
     observed_calibrated = (calibrated_quantiles.reshape(1, -1) <= expected_quantiles).sum(
         axis=1
     ) / T
@@ -204,18 +216,78 @@ def calibration_plot(predicted_quantiles, model):
         expected_quantiles,
         observed_uncalibrated,
         marker="o",
-        color=colors["uncalibrated"],
+        color=COLORS["predicted"],
         label="Uncalibrated",
     )
     plt.plot(
         expected_quantiles,
         observed_calibrated,
         marker="o",
-        color=colors["calibrated"],
+        color=COLORS["calibrated"],
         label="Calibrated",
     )
     plt.plot([0, 1], [0, 1], color="tab:grey", linestyle="--", zorder=0)
     plt.title("Calibration Plot")
-    plt.xlabel("Expected Confidence Levels")
-    plt.ylabel("Observed Confidence Levels")
+    plt.xlabel("Expected Quantiles")
+    plt.ylabel("Observed Quantiles")
     plt.legend()
+
+
+def plot_calibration(x, post_pred, qc, df, func):
+    """Plot the posterior predictive before and after calibration
+    """
+    x = x.ravel()
+    q = [0.025, 0.5, 0.975]
+    quantiles = [q, qc.inverse_transform(q)]
+    titles = ["Before Calibration", "After Calibration"]
+
+    fig, ax = plt.subplots(1, 2, figsize=(8.5, 3.5), sharex=True, sharey=True)
+
+    for i, axis in enumerate(ax):
+        # Plot the true function
+        distribution = func(x)
+        lower, upper = distribution.interval(0.95)
+        true_interval = axis.fill_between(
+            x, lower, upper, color=COLORS["true"], alpha=FILL_ALPHA, label="True 95% Interval",
+        )
+        axis.scatter(df.x, df.y, s=3, color=COLORS["observations"], label="Observations")
+        true_median = axis.plot(x, distribution.median(), color=COLORS["true"], label="True Median")
+        axis.set_title(titles[i])
+
+        lower, median, upper = np.quantile(post_pred, quantiles[i], axis=0)
+        predicted_interval = axis.fill_between(
+            x,
+            lower,
+            upper,
+            color=COLORS["predicted"],
+            alpha=FILL_ALPHA,
+            label=f"95% Predictive Interval",
+        )
+        predicted_median = axis.plot(
+            x, median, color=COLORS["predicted"], label=f"Predicted Median"
+        )
+
+    handles = [true_interval, true_median[0], predicted_interval, predicted_median[0]]
+    labels = [h.get_label() for h in handles]
+    fig.legend(handles, labels, loc="lower center", ncol=len(labels))
+    fig.tight_layout(rect=(0, 0.1, 1, 1))
+
+
+def check_convergence(res_main, res_holdout, func, debug_mode=True):
+    if not debug_mode:
+        # Do not plot posterior predictives if in production mode
+        return
+
+    data = {"main dataset": res_main, "hold-out dataset": res_holdout}
+    for name, res in data.items():
+        plt.figure()
+        plot_posterior_predictive(
+            res["X_test"], res["post_pred"], func=func, df=res["df"], title=name,
+        )
+
+        # Print the diagnostic tests
+        diagnostics = get_metrics(res["mcmc"])
+        message = ("Minimum ESS: {min_ess:,.2f}\n" "Max Gelman-Rubin: {max_rhat:.2f}").format(
+            **diagnostics
+        )
+        plt.gcf().text(0.95, 0.15, message)

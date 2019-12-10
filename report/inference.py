@@ -19,13 +19,28 @@ def sample(
     model,
     num_samples,
     num_warmup,
-    num_chains,
+    num_chains=2,
     seed=0,
     chain_method="parallel",
     summary=True,
     **kwargs,
 ):
     """Run the No-U-Turn sampler
+
+    Args:
+        model: an NumPyro model function
+        num_samples: number of samples to draw
+        num_warmup: number of samples to use for tuning
+        num_chains: number of chains to draw (default: {2})
+        **kwargs: other arguments to be passed to the model function
+        seed: random seed (default: {0})
+        chain_method: one of NumPyro's sampling methods — "parallel" / "sequential" /
+            "vectorized" (default: {"parallel"})
+        summary: print diagnostics, including the Effective sample size and the
+            Gelman-Rubin test (default: {True})
+
+    Returns:
+        mcmc: A fitted MCMC object
     """
     rng_key = random.PRNGKey(seed)
     kernel = NUTS(model)
@@ -36,12 +51,22 @@ def sample(
     if summary:
         mcmc.print_summary()
 
-    # Return a fitted MCMC object
     return mcmc
 
 
 def predict(model, rng_key, samples, X):
     """NumPyro's helper function for prediction
+
+    Used internally only by sample_pp().
+
+    Args:
+        model: a NumPyro model function
+        rng_key: JAX's random generator key of type PRNGKey
+        samples: posterior samples, an array
+        X: input values for which to generate posterior predictive
+
+    Returns:
+        samples of the posterior predictive, an array
     """
     model = handlers.substitute(handlers.seed(model, rng_key), samples)
     # note that Y will be sampled in the model because we pass Y=None here
@@ -51,6 +76,23 @@ def predict(model, rng_key, samples, X):
 
 def simulate_pp(model, mcmc_or_vi, X_test, n_samples=None, seed=1, noiseless=False):
     """Simulate posterior predictive: predict Y_test at each input of X_test
+
+    Args:
+        model: a NumPyro model function
+        mcmc_or_vi: a fitted MCMC or VI object
+        X_test: the X's for which to generate posterior predictive
+        n_samples: number of samples to generate (required in case of VI,
+            otherwise the same as the number of posterior MCMC samples) (default: {None})
+        seed: random seed (default: {1})
+        noiseless: return the posterior predictive without the noise (default: {False})
+
+    Returns:
+        predictions: samples of the posterior predictive,
+        an array of shape (n_samples, X_test.shape[0])
+
+    Raises:
+        ValueError: if n_samples isn't specified for Variational Inference
+        NotImplemented: of noiseless is set (something to attend to in the future)
     """
     # Set random state
     rng_key = random.PRNGKey(seed)
@@ -99,6 +141,13 @@ class ADVIResults:
     def sample_posterior(self, rng_key, n_samples):
         """Sample from the posterior, making all necessary transformations of
         the reparametrized variational distribution.
+
+        Args:
+            rng_key: random number generator key, of type PRNGKey
+            n_samples: number of samples to draw from the variational posterior
+
+        Returns:
+            posterior_samples: an array of shape (n_samples,)
         """
         params = self.get_params()
         posterior_samples = self.guide.sample_posterior(rng_key, params, sample_shape=(n_samples,))
@@ -114,6 +163,15 @@ class ADVIResults:
 def fit_advi(model, num_iter, learning_rate=0.01, seed=0):
     """Automatic Differentiation Variational Inference using a Normal variational distribution
     with a diagonal covariance matrix.
+
+    Args:
+        model: a NumPyro's model function
+        num_iter: number of iterations of gradient descent (Adam)
+        learning_rate: the step size for the Adam algorithm (default: {0.01})
+        seed: random seed (default: {0})
+
+    Returns:
+        a set of results of type ADVIResults
     """
     rng_key = random.PRNGKey(seed)
     adam = Adam(learning_rate)
@@ -131,6 +189,12 @@ def fit_advi(model, num_iter, learning_rate=0.01, seed=0):
 def get_metrics(mcmc):
     """Extract diagnostic metrics from a fitted MCMC model: the minimum effective sample size
     and the maximum Gelman-Rubin test value.
+
+    Args:
+        mcmc: a fitted MCMC object
+
+    Returns:
+        metrics: a dictionary of the metrics
     """
     summary_dict = summary(mcmc._states["z"])
 
@@ -141,4 +205,5 @@ def get_metrics(mcmc):
         min_ess = min(min_ess, stats_dict["n_eff"].min())
         max_rhat = max(max_rhat, stats_dict["r_hat"].max())
 
-    return {"min_ess": min_ess, "max_rhat": max_rhat}
+    metrics = {"min_ess": min_ess, "max_rhat": max_rhat}
+    return metrics
