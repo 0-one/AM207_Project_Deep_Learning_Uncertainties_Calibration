@@ -827,17 +827,17 @@ plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, f
 #
 # Another case of failure can be observed in the situation when there is bias, i.e. the network is not sufficiently expressive to describe the data due to a combination of the prior and the architecture. In an effort to fit the data the calibration algorithm increases uncertainty uniformly across the whole input space. A much better approach would be to change the bad model, rather than try to recalibrate it:
 
-# + {"slideshow": {"slide_type": "skip"}, "active": ""}
-# model_params = {
-#     "hidden": 1,
-#     "width": 50,
-#     "sigma": 0.25,
-#     "noise": 0.5,
-# }
-# # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
-# res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
-# # Ensure that the sampler has converged
-# check_convergence(res_main, res_holdout, func, plot=DEBUG)
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 50,
+    "sigma": 0.25,
+    "noise": 0.5,
+}
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# Ensure that the sampler has converged
+check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
