@@ -42,7 +42,6 @@ def make_cal_dataset(y, post_pred):
     """
     y = np.asarray(y).reshape(-1, 1)
     T = y.shape[0]
-    N = post_pred.shape[0]
 
     # compute quantiles of y observation
     # quant_y.shape = (T,)

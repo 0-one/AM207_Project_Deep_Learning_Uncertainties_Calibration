@@ -4,8 +4,6 @@ from jax import lax, vmap
 import jax.numpy as np
 import jax.random as random
 
-import numpyro
-import numpyro.distributions as dist
 from numpyro import handlers
 from numpyro.diagnostics import summary
 from numpyro.infer import MCMC, NUTS, SVI
@@ -118,7 +116,7 @@ def simulate_pp(model, mcmc_or_vi, X_test, n_samples=None, seed=1, noiseless=Fal
 
     # Optionally, return mean predictions (the variance of which is epistemic uncertainty)
     if noiseless:
-        raise NotImplemented("A model with zero noise should be passed instead")
+        raise NotImplementedError("A model with zero noise should be passed instead")
 
     return predictions
 
@@ -154,6 +152,8 @@ class ADVIResults:
         return posterior_samples
 
     def plot_loss(self):
+        """Plot the negative ELBO by iteration
+        """
         plt.plot(self.losses)
         plt.yscale("log")
         plt.xlabel("Iteration")
@@ -186,7 +186,7 @@ def fit_advi(model, num_iter, learning_rate=0.01, seed=0):
     return results
 
 
-def get_metrics(mcmc):
+def run_diagnostics(mcmc):
     """Extract diagnostic metrics from a fitted MCMC model: the minimum effective sample size
     and the maximum Gelman-Rubin test value.
 
@@ -201,7 +201,7 @@ def get_metrics(mcmc):
     min_ess = np.inf
     max_rhat = 0
 
-    for name, stats_dict in summary_dict.items():
+    for _, stats_dict in summary_dict.items():
         min_ess = min(min_ess, stats_dict["n_eff"].min())
         max_rhat = max(max_rhat, stats_dict["r_hat"].max())
 

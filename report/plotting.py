@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import transforms
 from matplotlib.patches import Rectangle
 
+from inference import run_diagnostics
 
 # Colors used for plotting the posterior predictives
 COLORS = {
@@ -186,6 +187,8 @@ def plot_table(mark_y=False, show_quantiles=None):
 
 
 def plot_ecdf(predicted_quantiles):
+    """Visualize the empirical CDF
+    """
     plt.hist(predicted_quantiles, bins=50, cumulative=True, density=True, alpha=0.3)
     plt.title("CDF of Predicted Quantiles")
     plt.xlabel("Predicted Quantiles, $H(x_t)(y_t)$")
@@ -233,7 +236,7 @@ def calibration_plot(predicted_quantiles, model):
     plt.legend()
 
 
-def plot_calibration(x, post_pred, qc, df, func):
+def plot_calibration_results(x, post_pred, qc, df, func):
     """Plot the posterior predictive before and after calibration
     """
     x = x.ravel()
@@ -273,21 +276,26 @@ def plot_calibration(x, post_pred, qc, df, func):
     fig.tight_layout(rect=(0, 0.1, 1, 1))
 
 
-def check_convergence(res_main, res_holdout, func, debug_mode=True):
-    if not debug_mode:
-        # Do not plot posterior predictives if in production mode
-        return
+def check_convergence(res_main, res_holdout, func, plot=True):
+    data = {"Main dataset": res_main, "Hold-out dataset": res_holdout}
 
-    data = {"main dataset": res_main, "hold-out dataset": res_holdout}
     for name, res in data.items():
-        plt.figure()
-        plot_posterior_predictive(
-            res["X_test"], res["post_pred"], func=func, df=res["df"], title=name,
-        )
+        # Compute basic diagnostic tests
+        diagnostics = run_diagnostics(res["mcmc"])
 
-        # Print the diagnostic tests
-        diagnostics = get_metrics(res["mcmc"])
-        message = ("Minimum ESS: {min_ess:,.2f}\n" "Max Gelman-Rubin: {max_rhat:.2f}").format(
-            **diagnostics
-        )
-        plt.gcf().text(0.95, 0.15, message)
+        if plot:
+            plt.figure()
+            plot_posterior_predictive(
+                res["X_test"], res["post_pred"], func=func, df=res["df"], title=name,
+            )
+            # Print the diagnostic tests
+            message = ("Minimum ESS: {min_ess:,.2f}\nMax Gelman-Rubin: {max_rhat:.2f}").format(
+                **diagnostics
+            )
+            plt.gcf().text(0.95, 0.15, message)
+        else:
+            print(
+                "{name}: minimum ESS {min_ess:,.2f}, maximum Gelman-Rubin {max_rhat:.2f}".format(
+                    name=name, **diagnostics
+                )
+            )

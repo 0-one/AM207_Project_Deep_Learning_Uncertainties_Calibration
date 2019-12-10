@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 from bnn import feedforward
 from calibration import QuantileCalibration
 from data import generate_data
-from inference import sample, simulate_pp, fit_advi, get_metrics
+from inference import sample, simulate_pp, fit_advi, run_diagnostics
 from plotting import *
 
 # + {"slideshow": {"slide_type": "skip"}}
@@ -53,74 +53,6 @@ DEBUG = False
 
 
 # + {"slideshow": {"slide_type": "skip"}}
-def sample_and_plot(df, func, *, hidden, width, sigma, noise, num_samples, num_warmup, num_chains):
-    """A helper function to instantiate the model, sample from the posterior, simulate
-    the posterior predictive and plot it against the observations and the true function.
-    """
-    # Observations
-    X = df[["x"]].values
-    Y = df[["y"]].values
-    X_test = np.linspace(X.min(), X.max(), num=1000)[:, np.newaxis]
-    
-    # Instantiate the model with a network architecture, prior standard deviation and likelihood noise
-    model = partial(feedforward, X=X, Y=Y, width=width, hidden=hidden, sigma=sigma, noise=noise)
-
-    # Run the No-U-Turn sampler
-    mcmc = sample(model, num_samples, num_warmup, num_chains, seed=0, summary=False)
-    
-    # Generate the posterior predictive and plot the results
-    posterior_predictive = simulate_pp(model, mcmc, X_test, seed=1)
-    plot_posterior_predictive(
-        X_test,
-        posterior_predictive,
-        func=func,
-        df=df,
-        title=f"BNN with {width} Nodes in {hidden} Hidden Layer{'' if hidden == 1 else 's'},\n"
-        f"Weight Uncertainty {sigma}, Noise {noise}, NUTS Sampling",
-    )
-    
-    # Print the diagnostic tests
-    diagnostics=get_metrics(mcmc)
-    message = ('Minimum ESS: {min_ess:,.2f}\n'
-               'Max Gelman-Rubin: {max_rhat:.2f}').format(**diagnostics)
-    plt.gcf().text(0.95, 0.15, message)
-    
-    # Return the fitted MCMC object to enable detailed diagnostics, e.g. mcmc.print_summary()
-    return mcmc
-
-
-# + {"slideshow": {"slide_type": "skip"}}
-def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_rate):
-    """A helper function to instantiate the model, approximate the posterior using Variational Inference
-    with reparametrization and isotropic Gaussians, simulate the posterior predictive and plot it
-    against the observations and the true function.
-    """
-    # Observations
-    X = df[["x"]].values
-    Y = df[["y"]].values
-    X_test = np.linspace(X.min(), X.max(), num=1000)[:, np.newaxis]
-    
-    # Instantiate the model with a network architecture, prior standard deviation and likelihood noise
-    model = partial(feedforward, X=X, Y=Y, width=width, hidden=hidden, sigma=sigma, noise=noise)
-
-    # Approximate the posterior using Automatic Differentiation Variational Inference
-    vi = fit_advi(model, num_iter=num_iter, learning_rate=learning_rate, seed=0)
-    
-    # Generate the posterior predictive and plot the results
-    posterior_predictive = simulate_pp(model, vi, X_test, n_samples=1000, seed=1)
-    plot_posterior_predictive(
-        X_test,
-        posterior_predictive,
-        func=func,
-        df=df,
-        title=f"BNN with {width} Nodes in {hidden} Hidden Layer{'' if hidden == 1 else 's'},\n"
-        f"Weight Uncertainty {sigma}, Noise {noise}, VI Approximation",
-    )
-    # Return the variation inference object to enable diagnostics, e.g. vi.plot_loss()
-    return vi
-
-
-# + {"slideshow": {"slide_type": "skip"}}
 def build_model(df, *, hidden, width, sigma, noise):
     """Instantiate the model with a network architecture, prior standard deviation
     and likelihood noise.
@@ -134,12 +66,77 @@ def build_model(df, *, hidden, width, sigma, noise):
 
 
 # + {"slideshow": {"slide_type": "skip"}}
+def sample_and_plot(df, func, *, hidden, width, sigma, noise, num_samples, num_warmup, num_chains):
+    """A helper function to instantiate the model, sample from the posterior, simulate
+    the posterior predictive and plot it against the observations and the true function.
+    """
+    # Instantiate the model
+    model = build_model(df, width=width, hidden=hidden, sigma=sigma, noise=noise)
+
+    # Run the No-U-Turn sampler
+    mcmc = sample(model, num_samples, num_warmup, num_chains, seed=0, summary=False)
+
+    # Generate the posterior predictive
+    X_test = np.linspace(df.x.min(), df.x.max(), num=1000)[:, np.newaxis]
+    posterior_predictive = simulate_pp(model, mcmc, X_test, seed=1)
+
+    # Plot the posterior predictive
+    plot_posterior_predictive(
+        X_test,
+        posterior_predictive,
+        func=func,
+        df=df,
+        title=f"BNN with {width} Nodes in {hidden} Hidden Layer{'' if hidden == 1 else 's'},\n"
+        f"Weight Uncertainty {sigma}, Noise {noise}, NUTS Sampling",
+    )
+
+    # Print the diagnostic tests
+    diagnostics = run_diagnostics(mcmc)
+    message = ("Minimum ESS: {min_ess:,.2f}\n" "Max Gelman-Rubin: {max_rhat:.2f}").format(
+        **diagnostics
+    )
+    plt.gcf().text(0.95, 0.15, message)
+
+    # Return the fitted MCMC object to enable detailed diagnostics, e.g. mcmc.print_summary()
+    return mcmc
+
+
+# + {"slideshow": {"slide_type": "skip"}}
+def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_rate):
+    """A helper function to instantiate the model, approximate the posterior using Variational Inference
+    with reparametrization and isotropic Gaussians, simulate the posterior predictive and plot it
+    against the observations and the true function.
+    """
+    # Instantiate the model
+    model = build_model(df, width=width, hidden=hidden, sigma=sigma, noise=noise)
+
+    # Approximate the posterior using Automatic Differentiation Variational Inference
+    vi = fit_advi(model, num_iter=num_iter, learning_rate=learning_rate, seed=0)
+
+    # Generate the posterior predictive and plot the results
+    X_test = np.linspace(df.x.min(), df.x.max(), num=1000)[:, np.newaxis]
+    posterior_predictive = simulate_pp(model, vi, X_test, n_samples=1000, seed=1)
+
+    # Plot the posterior predictive
+    plot_posterior_predictive(
+        X_test,
+        posterior_predictive,
+        func=func,
+        df=df,
+        title=f"BNN with {width} Nodes in {hidden} Hidden Layer{'' if hidden == 1 else 's'},\n"
+        f"Weight Uncertainty {sigma}, Noise {noise}, VI Approximation",
+    )
+    # Return the variation inference object to enable diagnostics, e.g. vi.plot_loss()
+    return vi
+
+
+# + {"slideshow": {"slide_type": "skip"}}
 def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, num_samples, num_warmup, num_chains):
     """A helper function to instantiate BNNs for both datasets, sample from the posterior,
-    simulate the posterior predictives and train isotonic regression. 
+    simulate the posterior predictives and train isotonic regression.
     """
     results = []
-    
+
     # Obtain the posterior predictives for both datasets
     for df in [df_main, df_hold]:
         # Instantiate the model
@@ -150,22 +147,24 @@ def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, num_samples, num
         # Simulate the posterior predictive for equally spaced values of X for plotting
         post_pred = simulate_pp(model, mcmc, X_test, seed=1)
         # Simulate the posterior predictive for all X's in the dataset
-        post_pred_train = simulate_pp(model, mcmc, df[['x']].values, seed=1)
-        results.append({
-            'df': df,
-            'model': model,
-            'mcmc': mcmc,
-            'X_test': X_test,
-            'post_pred': post_pred,
-            'post_pred_train': post_pred_train
-        })
+        post_pred_train = simulate_pp(model, mcmc, df[["x"]].values, seed=1)
+        results.append(
+            {
+                "df": df,
+                "model": model,
+                "mcmc": mcmc,
+                "X_test": X_test,
+                "post_pred": post_pred,
+                "post_pred_train": post_pred_train,
+            }
+        )
 
     res_main, res_holdout = results
-    
+
     # Train isotonic regression on the hold-out dataset
     qc = QuantileCalibration()
-    qc.fit(res_holdout['df'].y, res_holdout['post_pred_train'])
-    
+    qc.fit(res_holdout["df"].y, res_holdout["post_pred_train"])
+
     return res_main, res_holdout, qc
 
 
@@ -265,6 +264,7 @@ model_params = {
 sampler_params = {
     "num_samples": 2000,
     "num_warmup": 2000,
+    "num_chains": 2,
 }
 
 # Run the No-U-Turn sampler, generate the posterior predictive and plot it
@@ -685,18 +685,19 @@ model_params = {
 }
 
 # NUTS sampler parameters
-sampler_params = {
+sampler_params_4k = {
     "num_samples": 4000,
     "num_warmup": 4000,
+    "num_chains": 2,
 }
 
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
-res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params_4k)
 # Ensure that the sampler has converged
-check_convergence(res_main, res_holdout, func=polynomial, debug_mode=DEBUG)
+check_convergence(res_main, res_holdout, func=polynomial, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=polynomial)
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=polynomial)
 
 # + {"slideshow": {"slide_type": "-"}, "cell_type": "markdown"}
 # The calibrated posterior predictive isn't smooth due to sampling, which is especially evident for the extreme quantiles.
@@ -713,17 +714,13 @@ model_params = {
     "sigma": 2.0,
     "noise": 1.5,
 }
-sampler_params = {
-    "num_samples": 2000,
-    "num_warmup": 2000,
-}
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
 res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
 # Ensure that the sampler has converged
-check_convergence(res_main, res_holdout, func=polynomial, debug_mode=DEBUG)
+check_convergence(res_main, res_holdout, func=polynomial, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=polynomial)
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=polynomial)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # The Case of Missing Data
@@ -757,17 +754,13 @@ model_params = {
     "sigma": 2.0,
     "noise": 0.5,
 }
-sampler_params = {
-    "num_samples": 4000,
-    "num_warmup": 4000,
-}
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
-res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params_4k)
 # Ensure that the sampler has converged
-check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Prior: Calibration Results
@@ -781,17 +774,13 @@ model_params = {
     "sigma": 1.25,
     "noise": 0.5,
 }
-sampler_params = {
-    "num_samples": 4000,
-    "num_warmup": 4000,
-}
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
-res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params_4k)
 # Ensure that the sampler has converged
-check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Noise: Calibration Results
@@ -805,17 +794,13 @@ model_params = {
     "sigma": 2.0,
     "noise": 1.0,
 }
-sampler_params = {
-    "num_samples": 2000,
-    "num_warmup": 2000,
-}
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
 res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
 # Ensure that the sampler has converged
-check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Noise: Calibration Results
@@ -829,41 +814,33 @@ model_params = {
     "sigma": 1.25,
     "noise": 0.25,
 }
-sampler_params = {
-    "num_samples": 2000,  # FIXME: increase the samples sizes
-    "num_warmup": 2000,
-}
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
 res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
 # Ensure that the sampler has converged
-check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Likelihood: Calibration Results
 #
 # Another case of failure can be observed in the situation when there is bias, i.e. the network is not sufficiently expressive to describe the data due to a combination of the prior and the architecture. In an effort to fit the data the calibration algorithm increases uncertainty uniformly across the whole input space. A much better approach would be to change the bad model, rather than try to recalibrate it:
 
-# + {"slideshow": {"slide_type": "skip"}}
-model_params = {
-    "hidden": 1,
-    "width": 50,
-    "sigma": 0.25,
-    "noise": 0.5,
-}
-sampler_params = {
-    "num_samples": 2000,
-    "num_warmup": 2000,
-}
-# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
-res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
-# Ensure that the sampler has converged
-check_convergence(res_main, res_holdout, func, debug_mode=DEBUG)
+# + {"slideshow": {"slide_type": "skip"}, "active": ""}
+# model_params = {
+#     "hidden": 1,
+#     "width": 50,
+#     "sigma": 0.25,
+#     "noise": 0.5,
+# }
+# # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+# res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# # Ensure that the sampler has converged
+# check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "notes"}, "cell_type": "markdown"}
 # # Todo List
