@@ -54,8 +54,18 @@ DEBUG = False
 
 # + {"slideshow": {"slide_type": "skip"}}
 def build_model(df, *, hidden, width, sigma, noise):
-    """Instantiate the model with a network architecture, prior standard deviation
-    and likelihood noise.
+    """Instantiate the a feedforward BNN model with a network architecture,
+    prior standard deviation and likelihood noise.
+
+    Args:
+        df: a pandas DataFrame of observations (x, y)
+        hidden: the number of hidden layers in a BNN
+        width: the number of nodes in each hidden player
+        sigma: the standard deviation of the prior on the network weights
+        noise: the standard deviation of the likelihood noise
+
+    Returns:
+        model: an instantiated NumPyro model function
     """
     X = df[["x"]].values
     Y = df[["y"]].values
@@ -65,10 +75,26 @@ def build_model(df, *, hidden, width, sigma, noise):
     return model
 
 
+
 # + {"slideshow": {"slide_type": "skip"}}
 def sample_and_plot(df, func, *, hidden, width, sigma, noise, num_samples, num_warmup, num_chains=2):
     """A helper function to instantiate the model, sample from the posterior, simulate
     the posterior predictive and plot it against the observations and the true function.
+
+    Args:
+        df: a pandas DataFrame of observations (x, y)
+        func: the true function, a scipy.stats distribution for plotting
+        hidden: the number of hidden layers in a BNN
+        width: the number of nodes in each hidden player
+        sigma: the standard deviation of the prior on the network weights
+        noise: the standard deviation of the likelihood noise
+        num_samples: the number of samples to draw in each chain
+        num_warmup: the number of samples to use for tuning in each chain
+        num_chains: the number of chains to draw (default: {2})
+
+    Returns:
+        mcmc: a fitted MCMC inference object.
+        mcmc.print_summary() can be used for detailed diagnostics
     """
     # Instantiate the model
     model = build_model(df, width=width, hidden=hidden, sigma=sigma, noise=noise)
@@ -106,6 +132,20 @@ def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_ra
     """A helper function to instantiate the model, approximate the posterior using Variational Inference
     with reparametrization and isotropic Gaussians, simulate the posterior predictive and plot it
     against the observations and the true function.
+
+    Args:
+        df: a pandas DataFrame of observations (x, y)
+        func: the true function, a scipy.stats distribution for plotting
+        hidden: the number of hidden layers in a BNN
+        width: the number of nodes in each hidden player
+        sigma: the standard deviation of the prior on the network weights
+        noise: the standard deviation of the likelihood noise
+        num_iter: the number of iterations of gradient descent (Adam)
+        learning_rate: the step size for the Adam algorithm (default: {0.01})
+
+    Returns:
+        vi: an collection of fitted VI objects, an instance of ADVIResults.
+        vi.losses or vi.plot_loss() can be used for diagnostics of the ELBO.
     """
     # Instantiate the model
     model = build_model(df, width=width, hidden=hidden, sigma=sigma, noise=noise)
@@ -134,6 +174,22 @@ def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_ra
 def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, inference="NUTS", **kwargs):
     """A helper function to instantiate BNNs for both datasets, sample from the posterior,
     simulate the posterior predictives and train isotonic regression.
+
+    Args:
+        df_main: the main dataset (x, y) that need to be recalibrated, a pandas DataFrame
+        df_hold: the hold-out dataset (x, y) to train isotonic regression on, a pandas DataFrame
+        hidden: the number of hidden layers in a BNN
+        width: the number of nodes in each hidden player
+        sigma: the standard deviation of the prior on the network weights
+        noise: the standard deviation of the likelihood noise
+        inference: a method of interence, either "NUTS" or "VI" (default: {"NUTS"})
+        **kwargs: additional arguments passed along to the NUTS sampler or to the VI optimizer
+
+    Returns:
+        res_main, res_holdout: dictionaries holding fitted inference objects, including
+            the posterior predictive
+        qc: an instance of QuantileCalibration, containing isotonic regression trained
+            in forward an in reverse modes.
     """
     assert inference in {"NUTS", "VI"}, "Inference method must be one of 'NUTS' or 'VI'"
     results = []

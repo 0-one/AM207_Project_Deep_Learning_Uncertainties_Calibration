@@ -20,6 +20,16 @@ FILL_ALPHA = 0.15
 
 
 def plot_true_function(func, df, point_estimate="mean", title=None, legend=True, ax=None):
+    """Plot the true function and the observations
+
+    Args:
+        func: a scipy.stats distribution
+        df: a pandas DataFrame containing observations (x, y)
+        point_estimate: either a mean or a median (default: {"mean"})
+        title: an optional plot title (default: {None})
+        legend: whether to show a legend (default: {True})
+        ax: matplotlib axis to draw on, if any (default: {None})
+    """
     assert point_estimate in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
 
     x = np.linspace(df.x.min(), df.x.max(), num=1000)
@@ -43,6 +53,17 @@ def plot_posterior_predictive(
     x, post_pred, func=None, df=None, point_estimate="mean", title=None, legend=True, ax=None
 ):
     """Plot the posterior predictive along with the observations and the true function
+
+    Args:
+        x: an array of X's of shape (N,), (N, 1) or (1, N)
+        post_pred: the posterior predictive, array of shape (M, N),
+            where M is the number of samples for each X (e.g. 1000)
+        func: the true function, a scipy.stats distribution (default: {None})
+        df: a pandas DataFrame of observations (x,y) (default: {None})
+        point_estimate: either a mean of a median (default: {"mean"})
+        title: an optional plot title (default: {None})
+        legend: whether to show a legend (default: {True})
+        ax: matplotlib axis to draw on, if any (default: {None})
     """
     assert point_estimate in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
 
@@ -72,6 +93,14 @@ def plot_posterior_predictive(
 def plot_illustration(ppc_func, df, conditionals=True, title=None):
     """Visualize the miscalibrated posterior predictive to illustrate
     the calibration algorithm.
+
+    Used on the slide "The Algorithm Step-by-Step"
+
+    Args:
+        ppc_func: a scipy.stats distribution for the posterior predictive
+        df: a pandas DataFrame of observations (x, y)
+        conditionals: whether to plot the conditional densities (default: {True})
+        title: an optional plot title (default: {None})
     """
     # Plot the observations and 95% predictive interval
     fig, ax = plt.subplots(1, 1)
@@ -125,7 +154,12 @@ def plot_illustration(ppc_func, df, conditionals=True, title=None):
 
 
 def plot_table(mark_y=False, show_quantiles=None):
-    """Display a table, accompaining the step-by-step illustration of the algorithmm
+    """Display a table, accompaining the step-by-step illustration of the algorithm
+
+    Args:
+        mark_y: whether to draw dashed vertical lines for the location of y (default: {False})
+        show_quantiles: the values of quantiles to display, "predicted" / "all" or None
+            (default: {None})
     """
     if show_quantiles == "all":
         table_params = {"ncols": 5, "figsize": (10, 4)}
@@ -203,6 +237,11 @@ def plot_table(mark_y=False, show_quantiles=None):
 
 def plot_ecdf(predicted_quantiles):
     """Visualize the empirical CDF
+
+    Used in the step-by-step illustration of the calibration algorithm.
+
+    Args:
+        predicted_quantiles: the values of the quantiles for each observed Y
     """
     plt.hist(predicted_quantiles, bins=50, cumulative=True, density=True, alpha=0.3)
     plt.title("CDF of Predicted Quantiles")
@@ -212,6 +251,11 @@ def plot_ecdf(predicted_quantiles):
 
 def calibration_plot(predicted_quantiles, model):
     """Visualize a calibration plot suggested by the authors
+
+    Args:
+        predicted_quantiles: the values of the quantiles for each Y in the dataset
+        model: an isotonic regression object (trained in forward mode from predicted to empirical
+            quantiles)
     """
     # Choose equally spaced quantiles
     expected_quantiles = np.linspace(0, 1, num=11).reshape(-1, 1)
@@ -253,6 +297,16 @@ def calibration_plot(predicted_quantiles, model):
 
 def plot_calibration_results(x, post_pred, qc, df, func, figsize=(8.5, 3.5)):
     """Plot the posterior predictive before and after calibration
+
+    Args:
+        x: an array of X's of the shape (N,), (N, 1) or (1, N)
+        post_pred: the posterior predictive, array of shape (M, N),
+            where M is the number of samples for each X (e.g. 1000)
+        qc: a fitted QuantileCalibration object
+        df: a pandas DataFrame of observations (x, y)
+        func: the true function, a scipy.stats distribution
+        figsize: the overall size of the matplotlib figure, which will be split in
+            two subplots (default: {(8.5, 3.5)})
     """
     x = x.ravel()
     q = [0.025, 0.5, 0.975]
@@ -292,6 +346,22 @@ def plot_calibration_results(x, post_pred, qc, df, func, figsize=(8.5, 3.5)):
 
 
 def check_convergence(res_main, res_holdout, func, plot=True, point_estimate="median"):
+    """Print basic diagnostic metrics for each trained dataset and optinally plot the
+    posterior predictives for visual checks.
+
+    The diagnostic metrics are the Effective Sample Size and the Gelman-Rubin test. These
+    are only available for posteriors obtained via sampling. For VI posteriors one needs
+    to perform a visual check.
+
+    Args:
+        res_main: a dictionary of fitted objects for the main dataset (model, inference
+            object, the posterior predictive, etc.)
+        res_holdout: a similar dictionary of fitted objects for the hold-out dataset
+        func: the true function, a scipy.stats distribution
+        plot: whether to plot the posterior predictives. If set to False, only textual
+            information will be printed, if available (default: {True})
+        point_estimate: either a median or a mean (default: {"median"})
+    """
     assert point_estimate in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
 
     data = {"Main dataset": res_main, "Hold-out dataset": res_holdout}
