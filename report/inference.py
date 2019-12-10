@@ -196,6 +196,9 @@ def run_diagnostics(mcmc):
     Returns:
         metrics: a dictionary of the metrics
     """
+    if not isinstance(mcmc, MCMC):
+        raise ValueError("The argument to run_diagnostics() must be a fitted MCMC object")
+
     summary_dict = summary(mcmc._states["z"])
 
     min_ess = np.inf

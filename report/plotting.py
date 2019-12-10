@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.stats
+from numpyro.infer import MCMC
 
 import matplotlib.pyplot as plt
 from matplotlib import transforms
@@ -285,22 +286,28 @@ def check_convergence(res_main, res_holdout, func, plot=True):
     data = {"Main dataset": res_main, "Hold-out dataset": res_holdout}
 
     for name, res in data.items():
-        # Compute basic diagnostic tests
-        diagnostics = run_diagnostics(res["mcmc"])
+        if isinstance(res["infer"], MCMC):
+            # Compute basic diagnostic tests for an MCMC model
+            diagnostics = run_diagnostics(res["infer"])
+        else:
+            diagnostics = None
 
         if plot:
             plt.figure()
             plot_posterior_predictive(
                 res["X_test"], res["post_pred"], func=func, df=res["df"], title=name,
             )
-            # Print the diagnostic tests
-            message = ("Minimum ESS: {min_ess:,.2f}\nMax Gelman-Rubin: {max_rhat:.2f}").format(
-                **diagnostics
-            )
-            plt.gcf().text(0.95, 0.15, message)
-        else:
-            print(
-                "{name}: minimum ESS {min_ess:,.2f}, maximum Gelman-Rubin {max_rhat:.2f}".format(
-                    name=name, **diagnostics
+
+            # Print the results of diagnostic tests
+            if diagnostics:
+                message = ("Minimum ESS: {min_ess:,.2f}\nMax Gelman-Rubin: {max_rhat:.2f}").format(
+                    **diagnostics
                 )
-            )
+                plt.gcf().text(0.95, 0.15, message)
+        else:
+            if diagnostics:
+                print(
+                    "{name}: minimum ESS {min_ess:,.2f}, maximum Gelman-Rubin {max_rhat:.2f}".format(
+                        name=name, **diagnostics
+                    )
+                )

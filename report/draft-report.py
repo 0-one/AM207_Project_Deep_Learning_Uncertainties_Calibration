@@ -115,7 +115,7 @@ def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_ra
 
     # Generate the posterior predictive and plot the results
     X_test = np.linspace(df.x.min(), df.x.max(), num=1000)[:, np.newaxis]
-    posterior_predictive = simulate_pp(model, vi, X_test, n_samples=1000, seed=1)
+    posterior_predictive = simulate_pp(model, vi, X_test, n_samples=5000, seed=1)
 
     # Plot the posterior predictive
     plot_posterior_predictive(
@@ -131,28 +131,40 @@ def fit_and_plot(df, func, *, hidden, width, sigma, noise, num_iter, learning_ra
 
 
 # + {"slideshow": {"slide_type": "skip"}}
-def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, num_samples, num_warmup, num_chains):
+def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, inference="NUTS", **kwargs):
     """A helper function to instantiate BNNs for both datasets, sample from the posterior,
     simulate the posterior predictives and train isotonic regression.
     """
+    assert inference in {"NUTS", "VI"}, "Inference method must be one of 'NUTS' or 'VI'"
     results = []
 
     # Obtain the posterior predictives for both datasets
     for df in [df_main, df_hold]:
         # Instantiate the model
         model = build_model(df, width=width, hidden=hidden, sigma=sigma, noise=noise)
-        # Sample from the posterior using the No-U-Turn sampler
-        mcmc = sample(model, num_samples, num_warmup, num_chains, seed=0, summary=False)
+
+        if inference == "NUTS":
+            # Sample from the posterior using the No-U-Turn sampler
+            infer = sample(model, seed=0, summary=False, **kwargs)
+            # Use all posterior samples to generate the posterior predictive
+            n_samples = None
+        elif inference == "VI":
+            infer = fit_advi(model, seed=0, **kwargs)
+            n_samples = 5000
+
         X_test = np.linspace(df.x.min(), df.x.max(), num=1000)[:, np.newaxis]
+
         # Simulate the posterior predictive for equally spaced values of X for plotting
-        post_pred = simulate_pp(model, mcmc, X_test, seed=1)
+        post_pred = simulate_pp(model, infer, X_test, n_samples=n_samples, seed=1)
         # Simulate the posterior predictive for all X's in the dataset
-        post_pred_train = simulate_pp(model, mcmc, df[["x"]].values, seed=1)
+        post_pred_train = simulate_pp(model, infer, df[["x"]].values, n_samples=n_samples, seed=1)
+
+        # Collect the results
         results.append(
             {
                 "df": df,
                 "model": model,
-                "mcmc": mcmc,
+                "infer": infer,
                 "X_test": X_test,
                 "post_pred": post_pred,
                 "post_pred_train": post_pred_train,
@@ -838,7 +850,47 @@ plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, f
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Approximate Inference: Calibration Results
 #
+# Correctly performed Variational Inference using isotropic Gaussians is often associated with underestimated epistemic uncertainty. The quantile-based calibration algorithm does little to such posterior predictives: both epistemic and aleatoric uncertainties mostly remain the same:
+
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 10,
+    "sigma": 2.0,
+    "noise": 0.5,
+}
+
+vi_params = {
+    "num_iter": 500_000,
+    "learning_rate": 0.001,
+}
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, inference="VI", **model_params, **vi_params)
+# Ensure that variational inference has converged
+check_convergence(res_main, res_holdout, func, plot=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # VI with Noise Misspecification: Calibration Results
 #
+# When the variance of the noise in the likelihood is specified incorrectly, the calibration method corrects that, aligning aleatoric uncertainty with the data. The resulting epistemic uncertainty, however, is again too low. The algorithm is unable to remedy the issues arising from variational approximation:
+
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 10,
+    "sigma": 2.0,
+    "noise": 1.0,
+}
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, inference="VI", **model_params, **vi_params)
+# Ensure that variational inference has converged
+check_convergence(res_main, res_holdout, func, plot=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Heteroscedastic Dataset
@@ -886,12 +938,11 @@ plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, f
 
 # + {"slideshow": {"slide_type": "-"}}
 # Generate a heteroscedastic dataset with very few observations
-data_points = [
-    {"n_points": 50, "xlim": [-4, 4]},
-]
+data_points = [{"n_points": 50, "xlim": [-4, 4]}]
 df_few = generate_data(heteroscedastic, points=data_points, seed=2)
 
-# Generate data in a special way
+# Generate another dataset in a special way: with points at the edges
+# of the 95% predictive interval, interlaced along the X values:
 x_ = np.linspace(-4, 4, num=50)
 low_, high_ = heteroscedastic(x_[0::2]).ppf(0.025), heteroscedastic(x_[1::2]).ppf(0.975)
 df_special = pd.DataFrame(
@@ -900,7 +951,7 @@ df_special = pd.DataFrame(
 
 # Obtain and plot the posterior predictive for both datasets
 datasets = [df_few, df_special]
-titles = ["Dataset with Few Observations", "Artificially Contructed Dataset"]
+titles = ["Dataset with Few Observations", "Artificially Constructed Dataset"]
 
 fig, ax = plt.subplots(1, 2, figsize=(8.5, 3.5), sharey=True, tight_layout=True)
 
@@ -917,8 +968,6 @@ for axis, data, title in zip(ax, datasets, titles):
 # # Todo List
 #
 # - Additional experiments:
-#     - Variational Inference
-#     - Heteroscedastic noise
 #     - Non-Gaussian noise
 # - Compute the metrics for all the models (calibration error, PICP, log-likehood)
 # - Show calibration plots if appropriate
