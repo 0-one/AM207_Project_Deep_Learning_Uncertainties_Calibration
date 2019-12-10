@@ -19,33 +19,42 @@ COLORS = {
 FILL_ALPHA = 0.15
 
 
-def plot_true_function(func, df, title=None, legend=True, ax=None):
+def plot_true_function(func, df, point_estimate="mean", title=None, legend=True, ax=None):
+    assert point_estimate in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
+
     x = np.linspace(df.x.min(), df.x.max(), num=1000)
     distribution = func(x)
     lower, upper = distribution.interval(0.95)
+    point_est = distribution.mean() if point_estimate == "mean" else distribution.median()
 
     ax = ax or plt.gca()
     ax.fill_between(
         x, lower, upper, color=COLORS["true"], alpha=FILL_ALPHA, label="True 95% Interval",
     )
     ax.scatter(df.x, df.y, s=10, color=COLORS["observations"], label="Observations")
-    ax.plot(x, distribution.mean(), color=COLORS["true"], label="True Mean")
+    ax.plot(x, point_est, color=COLORS["true"], label="True Mean")
     if title is not None:
         ax.set_title(title)
     if legend:
         ax.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
 
 
-def plot_posterior_predictive(x, post_pred, func=None, df=None, title=None, legend=True, ax=None):
+def plot_posterior_predictive(
+    x, post_pred, func=None, df=None, point_estimate="mean", title=None, legend=True, ax=None
+):
     """Plot the posterior predictive along with the observations and the true function
     """
+    assert point_estimate in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
+
     ax = ax or plt.gca()
 
     if func is not None and df is not None:
-        plot_true_function(func, df, legend=legend, ax=ax)
+        plot_true_function(func, df, point_estimate=point_estimate, legend=legend, ax=ax)
 
     x = x.ravel()
     lower, upper = np.percentile(post_pred, [2.5, 97.5], axis=0)
+    point_est = post_pred.mean(axis=0) if point_estimate == "mean" else np.median(post_pred, axis=0)
+
     ax.fill_between(
         x,
         lower,
@@ -54,7 +63,7 @@ def plot_posterior_predictive(x, post_pred, func=None, df=None, title=None, lege
         alpha=FILL_ALPHA,
         label=f"95% Predictive Interval",
     )
-    ax.plot(x, post_pred.mean(axis=0), color=COLORS["predicted"], label=f"Predicted Mean")
+    ax.plot(x, point_est, color=COLORS["predicted"], label=f"Predicted Mean")
     ax.set_title(title)
     if legend:
         ax.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
@@ -282,7 +291,9 @@ def plot_calibration_results(x, post_pred, qc, df, func, figsize=(8.5, 3.5)):
     fig.tight_layout(rect=(0, 0.1, 1, 1))
 
 
-def check_convergence(res_main, res_holdout, func, plot=True):
+def check_convergence(res_main, res_holdout, func, plot=True, point_estimate="median"):
+    assert point_estimate in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
+
     data = {"Main dataset": res_main, "Hold-out dataset": res_holdout}
 
     for name, res in data.items():
@@ -295,7 +306,12 @@ def check_convergence(res_main, res_holdout, func, plot=True):
         if plot:
             plt.figure()
             plot_posterior_predictive(
-                res["X_test"], res["post_pred"], func=func, df=res["df"], title=name,
+                res["X_test"],
+                res["post_pred"],
+                func=func,
+                df=res["df"],
+                title=name,
+                point_estimate=point_estimate,
             )
 
             # Print the results of diagnostic tests
@@ -307,7 +323,6 @@ def check_convergence(res_main, res_holdout, func, plot=True):
         else:
             if diagnostics:
                 print(
-                    "{name}: minimum ESS {min_ess:,.2f}, maximum Gelman-Rubin {max_rhat:.2f}".format(
-                        name=name, **diagnostics
-                    )
+                    "{name}: minimum ESS {min_ess:,.2f}, "
+                    "maximum Gelman-Rubin {max_rhat:.2f}".format(name=name, **diagnostics)
                 )

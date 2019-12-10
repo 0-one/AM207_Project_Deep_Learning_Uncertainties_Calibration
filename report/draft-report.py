@@ -676,7 +676,7 @@ df_hold = generate_data(polynomial, points=data_points, seed=1)
 plot_true_function(polynomial, df, title=f"True Function: {polynomial.latex}")
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # Low Noise: Calibration Results
+# # Low Noise: Recalibration
 #
 # Through sampling, we perform inference of a BNN that underestimates uncertainty (low variance of the noise in the likelihood). The calibration model is trained on a separated hold-out dataset of the same size. After calibration, the posterior predictive aligns with the data really well:
 
@@ -708,7 +708,7 @@ plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, f
 # The calibrated posterior predictive isn't smooth due to sampling, which is especially evident for the extreme quantiles.
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # High Noise: Calibration Results
+# # High Noise: Recalibration
 #
 # Similarly, excellent results are obtained when we apply the calibration algorithm to a BNN that overestimates uncertainty due to the high variance of the noise in the Gaussian likelihood function. The resulting posterior predictive captures aleatoric uncertainty well:
 
@@ -748,7 +748,7 @@ df_hold = generate_data(func, points=data_points, seed=1)
 plot_true_function(func, df, title=f"True Function: {func.latex}")
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # Proper Posterior: Calibration Results
+# # Proper Posterior: Recalibration
 #
 # We sample from a BNN that produces a reasonably good posterior predictive, both in terms of aleatoric and epistemic uncertainty. After calibration, epistemic uncertainty shrinks, but only slightly. Since our definition of "good" epistemic uncertainty is subjective, the algorithm doesn't seem to ruin a valid model. However, epistemic uncertainty does become more asymmetric than before to calibration:
 
@@ -768,7 +768,7 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # Wrong Prior: Calibration Results
+# # Wrong Prior: Recalibration
 #
 # The same is true for the posterior predictives that either over- or underestimate uncertainty due to the wrong prior. The calibration algorithm has little effect on epistemic uncertainty:
 
@@ -788,7 +788,7 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # Wrong Noise: Calibration Results
+# # Wrong Noise: Recalibration
 #   
 # The situation changes when the noise is specified incorrectly *and* there is missing data. Since the algorithm maps predicted quantiles to empirical ones uniformly across all input space, this calibration method produces perfect aleatoric uncertainty, but reduces epistemic uncertainty drastically:
 
@@ -808,7 +808,7 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # Wrong Noise: Calibration Results
+# # Wrong Noise: Recalibration
 #
 # Analogously, if aleatoric uncertainty is underestimated by the model, after recalibration, it will be aligned with the data as much as possible, while epistemic uncertainty will be blown up. The authors of the method explicitly state that the suggested approach only works given enough i.i.d. data. Here we see one instance of how it fails:
 
@@ -828,7 +828,7 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # Wrong Likelihood: Calibration Results
+# # Wrong Likelihood: Recalibration
 #
 # Another case of failure can be observed in the situation when there is bias, i.e. the network is not sufficiently expressive to describe the data due to a combination of the prior and the architecture. In an effort to fit the data the calibration algorithm increases uncertainty uniformly across the whole input space. A much better approach would be to change the bad model, rather than try to recalibrate it:
 
@@ -848,7 +848,7 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # Approximate Inference: Calibration Results
+# # Approximate Inference: Recalibration
 #
 # Correctly performed Variational Inference using isotropic Gaussians is often associated with underestimated epistemic uncertainty. The quantile-based calibration algorithm does little to such posterior predictives: both epistemic and aleatoric uncertainties mostly remain the same:
 
@@ -873,7 +873,7 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # VI with Noise Misspecification: Calibration Results
+# # VI with Noise Misspecification: Recalibration
 #
 # When the variance of the noise in the likelihood is specified incorrectly, the calibration method corrects that, aligning aleatoric uncertainty with the data. The resulting epistemic uncertainty, however, is again too low. The algorithm is unable to remedy the issues arising from variational approximation:
 
@@ -912,7 +912,7 @@ df_hold = generate_data(heteroscedastic, points=data_points, seed=1)
 plot_true_function(func, df, title=f"True Function: {heteroscedastic.latex}")
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # Heteroscedastic Noise: Calibration Results
+# # Heteroscedastic Noise: Recalibration
 #
 # When a BNN is unable to capture heteroscedastic noise, the quantile calibration only makes the posterior predictive worse. The central region of aleatoric uncertainty that the original posterior predictive captured correctly is now inflated. The resulting model might be producing better uncertainty on average, but is less precise in specific segments of the input space:
 
@@ -964,14 +964,60 @@ for axis, data, title in zip(ax, datasets, titles):
         X_test, post_pred, func=heteroscedastic, df=data, legend=False, ax=axis, title=title
     )
 
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Non-Gaussian Data
+#
+# The authors of the paper state that "*if the true data distribution $P(Y | X)$ is not Gaussian, uncertainty estimates derived from the Bayesian model will not be calibrated*". We will construct such a dataset by generating observations with Gamma noise, instead of Normal noise, fit an ordinary BNN to it and see how the proposed calibration algorithm performs:
+
+# + {"slideshow": {"slide_type": "-"}}
+def gamma_polynomial(x):
+    """True data-generating function"""
+    alpha, beta = 2, 1
+    mu = alpha / beta
+    return scipy.stats.gamma(alpha, loc=0.1 * x ** 3 - mu, scale=1/beta)
+
+gamma_polynomial.latex = r"$y_i = 0.1x_i^3 + \varepsilon$, where $\varepsilon \sim Ga(\alpha=2, \beta=1)$"
+
+# Generate observations for an equally sized main dataset 
+# and a hold-out dataset to train isotonic regression on
+data_points = [
+    {"n_points": 400, "xlim": [-4, 4]},
+]
+df = generate_data(gamma_polynomial, points=data_points, seed=4)
+df_hold = generate_data(gamma_polynomial, points=data_points, seed=5)
+
+# Plot the data
+plot_true_function(gamma_polynomial, df, title=f"True Function: {gamma_polynomial.latex}")
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Non-Gaussian Noise: Recalibration
+#
+# The simulated posterior predictive obtained from a BNN with a Normal likelihood turns out to be indeed miscalibrated. All of the quantiles including the median are off. After applying the calibration procedure, all of the quantiles are aligned with the data. The non-parametric isotonic regression that lies at the core of the proposed calibration method seems to excel in this setting:
+
+# + {"slideshow": {"slide_type": "skip"}}
+model_params = {
+    "hidden": 1,
+    "width": 10,
+    "sigma": 1.0,
+    # Use the true standard deviation of the noise
+    "noise": np.round(gamma_polynomial(0).std(), 1),
+}
+
+# Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
+# Ensure that the sampler has converged
+check_convergence(res_main, res_holdout, func=gamma_polynomial, plot=DEBUG)
+
+# + {"slideshow": {"slide_type": "-"}}
+plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=gamma_polynomial)
+
 # + {"slideshow": {"slide_type": "notes"}, "cell_type": "markdown"}
 # # Todo List
 #
-# - Additional experiments:
-#     - Non-Gaussian noise
 # - Compute the metrics for all the models (calibration error, PICP, log-likehood)
 # - Show calibration plots if appropriate
 # - Evaluate the effect of calibration on point estimates
 # - Test the algorithm's sensitivity to the amount of i.i.d. data
-# - Consider the 90% predictive interval instead of the 95% interval to make the plots more smooth
+# - Consider using the 90% predictive interval instead of the 95% interval to make the plots more smooth
 # - Add Evaluation of the claims and Future work
