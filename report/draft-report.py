@@ -96,12 +96,12 @@ DEBUG = False
 # # Outline
 #
 # 1. Problem Statement: Miscalibration and its Sources
-# 2. Existing work
+# 2. Existing Work
 # 3. Contribution: The Calibration Algorithm
 # 4. Technical Details
 # 5. Experiments
-# 6. Evaluation of the claims
-# 7. Future work
+# 6. Evaluation of the Claims
+# 7. Future Work
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Problem Statement
