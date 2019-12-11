@@ -911,3 +911,20 @@ plot_calibration_results(res_main, qc, func=gamma_polynomial)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Preliminary Evaluation
+#
+# Our preliminary understanding is that the claims made by the authors of the paper are valid. In strict accordance with the definition of *quantile-calibrated* regression output, their method produces uncertainty estimates that are well-calibrated, *given enough i.i.d. data*.
+#
+# **Advantages:**
+# - **Sound & simple:** The algorithm is statistically sound, is very simple to implement and easy to apply to any regression model.
+# - **Model-agnostic:** The calibration algorithm is model-agnostic, which is both its strength (as it can be applied in a post-processing step to any black-box model) and its weakness (since it doesn't understand the output of the model and may perform arbitrary mapping).
+# - **Avoids overfitting:** The quantiles are not perfectly calibrated, which would pose an issue of overfitting, but are calibrated reasonably well to the empirical ones using a hold-out dataset or cross-validation.
+# - **Improves aleatoric uncertainty:** The calibration algorithm performs well in terms of aleatoric uncertainty on homoscedastic datasets.
+# - **Excels on non-Gaussian data:** Due to the non-parametric nature of the algorithm, it also excels if the true noise of the data is not Gaussian.
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Preliminary Evaluation
+#
+# **Cases of failure:**
+# - **Distorts epistemic uncertainty:** The quantile-based calibration, however, doesn't know how to deal with epistemic uncertainty due to its reliance on data availability. In certain situations, this might destroy or distort originally reasonable epistemic uncertainty.
+# - **Should be used with care on heteroscedastic data**: The technique also cannot remedy bad posterior predictives obtained on heteroscedastic datasets, occasionally making them worse. The algorithm maps quantiles uniformly across the input space, which only makes sense if the model is capturing heteroscedastic noise.
+# - **Relies on data availability:** Heavy dependence on sufficient (ideally infinite) i.i.d. data might pose a problem in practice, as the dimensionality of the problem grows.
