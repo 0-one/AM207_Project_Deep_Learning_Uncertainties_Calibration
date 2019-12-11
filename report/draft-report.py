@@ -928,3 +928,15 @@ plot_calibration_results(res_main, qc, func=gamma_polynomial)
 # - **Distorts epistemic uncertainty:** The quantile-based calibration, however, doesn't know how to deal with epistemic uncertainty due to its reliance on data availability. In certain situations, this might destroy or distort originally reasonable epistemic uncertainty.
 # - **Should be used with care on heteroscedastic data**: The technique also cannot remedy bad posterior predictives obtained on heteroscedastic datasets, occasionally making them worse. The algorithm maps quantiles uniformly across the input space, which only makes sense if the model is capturing heteroscedastic noise.
 # - **Relies on data availability:** Heavy dependence on sufficient (ideally infinite) i.i.d. data might pose a problem in practice, as the dimensionality of the problem grows.
+
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Next Steps
+#
+# - Compute additional metrics for all the models (e.g. log-likelihood)
+# - Evaluate the effect of calibration on point estimates
+# - Test the algorithm's sensitivity to the amount of i.i.d. data
+# - Investigate cases of uninformative calibration
+# - Add missing sections of the report:
+#     - Literature review
+#     - Evaluation
+#     - Future work
