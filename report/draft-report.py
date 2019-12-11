@@ -14,26 +14,6 @@
 #     name: python3
 # ---
 
-# + {"slideshow": {"slide_type": "notes"}, "cell_type": "markdown"}
-# # Todo List
-#
-# - Add missing sections:
-#     - Literature review
-#     - Evaluation of the claims
-#     - Future work (Dmitry and ... want to continue the research in Spring)
-# - Compute more metrics for all the models:
-#     - log-likelihood
-#     - RMSE?
-# - Evaluate the effect of calibration on point estimates:
-#     - the median: add a description based on existing or additional studies 
-#     - the mean: doesn't seem to be involved in any way, since we're mapping quantiles, not data. Please, check.
-# - Test the algorithm's sensitivity to the amount of i.i.d. data:
-#     - few observations in the calibration dataset
-#     - high dimensionality of X
-# - Investigate uninformative calibration
-#     - see critique of the algorithm by [Levi (2019)](https://arxiv.org/pdf/1905.11659)
-# - (Optionally) Consider using the 90% predictive interval instead of the 95% interval to make the plots look more smooth (if that's an issue)
-
 # + {"slideshow": {"slide_type": "skip"}, "cell_type": "markdown"}
 # **Requirements:** Please install NumPyro by running:
 #
@@ -932,11 +912,18 @@ plot_calibration_results(res_main, qc, func=gamma_polynomial)
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Next Steps
 #
-# - Compute additional metrics for all the models (e.g. log-likelihood)
-# - Evaluate the effect of calibration on point estimates
+# - Compute additional metrics for all the models
+#     - e.g. log-likelihood (Ben)
+#     - or one of Google Brain's more advanced metrics
+# - Evaluate the effect of calibration on point estimates (Ben)
 # - Test the algorithm's sensitivity to the amount of i.i.d. data
-# - Investigate cases of uninformative calibration
+#     - the whole calibration dataset is small
+#     - high dimensionality of X
+#     - there are a few data points in the hold out dataset in the region where there is a gap in the original dataset
+# - See if the 90% interval is more smooth (Dmitry, Ben)
+# - Investigate the cases of uninformative calibration (Dmitry)
 # - Add missing sections of the report:
-#     - Literature review
-#     - Evaluation
-#     - Future work
+#     - Literature review (Piotr)
+#     - Evaluation (everyone)
+#     - Future work (Ben, Dmitry)
+# - Review and correct the draft report (everyone)
