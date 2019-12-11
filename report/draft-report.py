@@ -31,10 +31,10 @@ from IPython.display import display
 import matplotlib.pyplot as plt
 # %matplotlib inline
 
-from data import generate_data
-from helpers import build_model, sample_and_plot, fit_and_plot, calibrate
-from inference import sample, simulate_pp
-from plotting import *
+from code.data import generate_data
+from code.helpers import build_model, sample_and_plot, fit_and_plot, calibrate
+from code.inference import sample, simulate_pp
+from code.plotting import *
 
 # + {"slideshow": {"slide_type": "skip"}}
 # Configure matplotlib format and default dimensions
