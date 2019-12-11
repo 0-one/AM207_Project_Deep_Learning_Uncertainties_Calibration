@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 from matplotlib import transforms
 from matplotlib.patches import Rectangle
 
+from code.calibration import calculate_quantiles
 from code.inference import run_diagnostics
+from code.metrics import calibration_error, picp
 
 # Colors used for plotting the posterior predictives
 COLORS = {
@@ -295,7 +297,7 @@ def calibration_plot(predicted_quantiles, model):
     plt.legend()
 
 
-def plot_calibration_results(x, post_pred, qc, df, func, figsize=(8.5, 3.5)):
+def plot_calibration_results(results, qc, func, figsize=(8.5, 3.5)):
     """Plot the posterior predictive before and after calibration
 
     Args:
@@ -308,7 +310,11 @@ def plot_calibration_results(x, post_pred, qc, df, func, figsize=(8.5, 3.5)):
         figsize: the overall size of the matplotlib figure, which will be split in
             two subplots (default: {(8.5, 3.5)})
     """
-    x = x.ravel()
+    x = results["X_test"].ravel()
+    post_pred = results["post_pred"]
+    post_pred_x = results["post_pred_x"]
+    df = results["df"]
+
     q = [0.025, 0.5, 0.975]
     quantiles = [q, qc.inverse_transform(q)]
     titles = ["Before Calibration", "After Calibration"]
@@ -339,6 +345,30 @@ def plot_calibration_results(x, post_pred, qc, df, func, figsize=(8.5, 3.5)):
             x, median, color=COLORS["predicted"], label=f"Predicted Median"
         )
 
+    # Compute the calibration error and PICP-95, before calibration
+    uncalibrated_quantiles = calculate_quantiles(post_pred_x.T, df[["y"]].values)
+    cal_error = calibration_error(uncalibrated_quantiles)
+    picp95 = picp(uncalibrated_quantiles)
+    ax[0].text(
+        0.96,
+        0.06,
+        f"Calibr. {cal_error:.3f}\nPICP  {picp95:.3f}",
+        horizontalalignment="right",
+        transform=ax[0].transAxes,
+    )
+    # After calibration:
+    calibrated_quantiles = qc.transform(uncalibrated_quantiles)
+    cal_error = calibration_error(calibrated_quantiles)
+    picp95 = picp(calibrated_quantiles)
+    ax[1].text(
+        0.96,
+        0.06,
+        f"Calibr. {cal_error:.3f}\nPICP  {picp95:.3f}",
+        horizontalalignment="right",
+        transform=ax[1].transAxes,
+    )
+
+    # Add a legend under the plots
     handles = [true_interval, true_median[0], predicted_interval, predicted_median[0]]
     labels = [h.get_label() for h in handles]
     fig.legend(handles, labels, loc="lower center", ncol=len(labels))

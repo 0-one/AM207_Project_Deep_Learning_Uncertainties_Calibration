@@ -167,7 +167,7 @@ def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, inference="NUTS"
         # Simulate the posterior predictive for equally spaced values of X for plotting
         post_pred = simulate_pp(model, infer, X_test, n_samples=n_samples, seed=1)
         # Simulate the posterior predictive for all X's in the dataset
-        post_pred_train = simulate_pp(model, infer, df[["x"]].values, n_samples=n_samples, seed=1)
+        post_pred_x = simulate_pp(model, infer, df[["x"]].values, n_samples=n_samples, seed=1)
 
         # Collect the results
         results.append(
@@ -177,7 +177,7 @@ def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, inference="NUTS"
                 "infer": infer,
                 "X_test": X_test,
                 "post_pred": post_pred,
-                "post_pred_train": post_pred_train,
+                "post_pred_x": post_pred_x,
             }
         )
 
@@ -185,6 +185,6 @@ def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, inference="NUTS"
 
     # Train isotonic regression on the hold-out dataset
     qc = QuantileCalibration()
-    qc.fit(res_holdout["df"].y, res_holdout["post_pred_train"])
+    qc.fit(res_holdout["df"].y, res_holdout["post_pred_x"])
 
     return res_main, res_holdout, qc

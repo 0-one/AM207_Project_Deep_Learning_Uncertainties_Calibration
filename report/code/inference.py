@@ -89,7 +89,7 @@ def simulate_pp(model, mcmc_or_vi, X_test, n_samples=None, seed=1, noiseless=Fal
 
     Raises:
         ValueError: if n_samples isn't specified for Variational Inference
-        NotImplemented: of noiseless is set (something to attend to in the future)
+        NotImplementedError: of noiseless is set (something to attend to in the future)
     """
     # Set random state
     rng_key = random.PRNGKey(seed)

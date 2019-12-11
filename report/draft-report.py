@@ -14,6 +14,26 @@
 #     name: python3
 # ---
 
+# + {"slideshow": {"slide_type": "notes"}, "cell_type": "markdown"}
+# # Todo List
+#
+# - Add missing sections:
+#     - Literature review
+#     - Evaluation of the claims
+#     - Future work (Dmitry and ... want to continue the research in Spring)
+# - Compute more metrics for all the models:
+#     - log-likelihood
+#     - RMSE?
+# - Evaluate the effect of calibration on point estimates:
+#     - the median: add a description based on existing or additional studies 
+#     - the mean: doesn't seem to be involved in any way, since we're mapping quantiles, not data. Please, check.
+# - Test the algorithm's sensitivity to the amount of i.i.d. data:
+#     - few observations in the calibration dataset
+#     - high dimensionality of X
+# - Investigate uninformative calibration
+#     - see critique of the algorithm by [Levi (2019)](https://arxiv.org/pdf/1905.11659)
+# - (Optionally) Consider using the 90% predictive interval instead of the 95% interval to make the plots look more smooth (if that's an issue)
+
 # + {"slideshow": {"slide_type": "skip"}, "cell_type": "markdown"}
 # **Requirements:** Please install NumPyro by running:
 #
@@ -573,7 +593,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_par
 check_convergence(res_main, res_holdout, func=polynomial, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=polynomial)
+plot_calibration_results(res_main, qc, func=polynomial)
 
 # + {"slideshow": {"slide_type": "-"}, "cell_type": "markdown"}
 # The calibrated posterior predictive isn't smooth due to sampling, which is especially evident for the extreme quantiles.
@@ -596,7 +616,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_par
 check_convergence(res_main, res_holdout, func=polynomial, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=polynomial)
+plot_calibration_results(res_main, qc, func=polynomial)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Missing or Insufficient Data
@@ -636,7 +656,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_par
 check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main, qc, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Prior: Recalibration
@@ -656,7 +676,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_par
 check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main, qc, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Noise: Recalibration
@@ -676,7 +696,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_par
 check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main, qc, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Noise: Recalibration
@@ -696,7 +716,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_par
 check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main, qc, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Wrong Likelihood: Recalibration
@@ -716,7 +736,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_par
 check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main, qc, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Approximate Inference: Recalibration
@@ -741,7 +761,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, inference="VI", **model_param
 check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main, qc, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # VI with Noise Misspecification: Recalibration
@@ -761,7 +781,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, inference="VI", **model_param
 check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=func)
+plot_calibration_results(res_main, qc, func=func)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Heteroscedastic Dataset
@@ -800,7 +820,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_par
 check_convergence(res_main, res_holdout, func=heteroscedastic, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=heteroscedastic)
+plot_calibration_results(res_main, qc, func=heteroscedastic)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
 # # Discussion: Modeling Heteroscedasticity
@@ -881,14 +901,7 @@ res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_par
 check_convergence(res_main, res_holdout, func=gamma_polynomial, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
-plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=gamma_polynomial)
+plot_calibration_results(res_main, qc, func=gamma_polynomial)
 
-# + {"slideshow": {"slide_type": "notes"}, "cell_type": "markdown"}
-# # Todo List
-#
-# - Compute the metrics for all the models (calibration error, PICP, log-likehood)
-# - Show calibration plots if appropriate
-# - Evaluate the effect of calibration on point estimates
-# - Test the algorithm's sensitivity to the amount of i.i.d. data
-# - Consider using the 90% predictive interval instead of the 95% interval to make the plots more smooth
-# - Add Evaluation of the claims and Future work
+# + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
+# # Preliminary Evaluation
