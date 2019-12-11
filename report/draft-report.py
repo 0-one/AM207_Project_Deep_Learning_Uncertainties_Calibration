@@ -45,6 +45,23 @@ plt.rc("figure", figsize=(7, 3.5))
 numpyro.set_platform("cpu")
 numpyro.set_host_device_count(2)
 
+# Set defaults for the NUTS sampler
+sampler_params = {
+    # Number of sampler to draw from the posterior in each chain
+    "num_samples": 2000,
+    # Number of samples to tune each chain
+    "num_warmup": 2000,
+    # Number of chains
+    "num_chains": 2,
+}
+
+# Define sampler parameters for difficult posteriors
+sampler_params_extra = {
+    "num_samples": 4000,
+    "num_warmup": 4000,
+    "num_chains": 2,
+}
+
 # Visualize all posterior predictive checks in debug mode
 DEBUG = False
 
@@ -138,13 +155,6 @@ model_params = {
     "sigma": 1.25,
     # Standard deviation of the likelihood
     "noise": 0.5,
-}
-
-# NUTS sampler parameters
-sampler_params = {
-    "num_samples": 2000,
-    "num_warmup": 2000,
-    "num_chains": 2,
 }
 
 # Run the No-U-Turn sampler, generate the posterior predictive and plot it
@@ -557,15 +567,8 @@ model_params = {
     "noise": 0.5,
 }
 
-# NUTS sampler parameters
-sampler_params_4k = {
-    "num_samples": 4000,
-    "num_warmup": 4000,
-    "num_chains": 2,
-}
-
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
-res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params_4k)
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params_extra)
 # Ensure that the sampler has converged
 check_convergence(res_main, res_holdout, func=polynomial, plot=DEBUG)
 
@@ -596,7 +599,7 @@ check_convergence(res_main, res_holdout, func=polynomial, plot=DEBUG)
 plot_calibration_results(res_main['X_test'], res_main['post_pred'], qc, df=df, func=polynomial)
 
 # + {"slideshow": {"slide_type": "slide"}, "cell_type": "markdown"}
-# # The Case of Missing Data
+# # Missing or Insufficient Data
 #
 # The next dataset is the one we used previously in our miscalibration examples — a third-degree polynomial with a gap in the middle. This will allow us to evaluate the impact of the calibration algorithm on epistemic uncertainty.
 
@@ -628,7 +631,7 @@ model_params = {
     "noise": 0.5,
 }
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
-res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params_4k)
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params_extra)
 # Ensure that the sampler has converged
 check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
@@ -648,7 +651,7 @@ model_params = {
     "noise": 0.5,
 }
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
-res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params_4k)
+res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params_extra)
 # Ensure that the sampler has converged
 check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
