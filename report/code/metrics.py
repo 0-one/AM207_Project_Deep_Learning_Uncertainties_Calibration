@@ -46,6 +46,7 @@ def picp(predicted_quantiles, interval=0.95):
         picp_value: the value of the Prediction Interval Coverage Probability
             for the requested interval
     """
+    assert 0 <= interval <= 1
     q_alpha = (1 - interval) / 2
     low, high = 1 - interval - q_alpha, interval + q_alpha
     picp_value = np.mean((predicted_quantiles >= low) & (predicted_quantiles <= high))
