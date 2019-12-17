@@ -21,27 +21,36 @@ COLORS = {
 FILL_ALPHA = 0.15
 
 
-def plot_true_function(func, df, point_estimate="mean", title=None, legend=True, ax=None):
+def plot_true_function(
+    func, df, point_estimate="mean", interval=0.95, title=None, legend=True, ax=None
+):
     """Plot the true function and the observations
 
     Args:
         func: a scipy.stats distribution
         df: a pandas DataFrame containing observations (x, y)
         point_estimate: either a mean or a median (default: {"mean"})
+        interval: the width of the predictive interval (default: {0.95})
         title: an optional plot title (default: {None})
         legend: whether to show a legend (default: {True})
         ax: matplotlib axis to draw on, if any (default: {None})
     """
     assert point_estimate in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
+    assert 0 <= interval <= 1
 
     x = np.linspace(df.x.min(), df.x.max(), num=1000)
     distribution = func(x)
-    lower, upper = distribution.interval(0.95)
+    lower, upper = distribution.interval(interval)
     point_est = distribution.mean() if point_estimate == "mean" else distribution.median()
 
     ax = ax or plt.gca()
     ax.fill_between(
-        x, lower, upper, color=COLORS["true"], alpha=FILL_ALPHA, label="True 95% Interval",
+        x,
+        lower,
+        upper,
+        color=COLORS["true"],
+        alpha=FILL_ALPHA,
+        label=f"True {interval*100:.0f}% Interval",
     )
     ax.scatter(df.x, df.y, s=10, color=COLORS["observations"], label="Observations")
     ax.plot(x, point_est, color=COLORS["true"], label="True Mean")
@@ -52,7 +61,15 @@ def plot_true_function(func, df, point_estimate="mean", title=None, legend=True,
 
 
 def plot_posterior_predictive(
-    x, post_pred, func=None, df=None, point_estimate="mean", title=None, legend=True, ax=None
+    x,
+    post_pred,
+    func=None,
+    df=None,
+    point_estimate="mean",
+    interval=0.95,
+    title=None,
+    legend=True,
+    ax=None,
 ):
     """Plot the posterior predictive along with the observations and the true function
 
@@ -63,16 +80,20 @@ def plot_posterior_predictive(
         func: the true function, a scipy.stats distribution (default: {None})
         df: a pandas DataFrame of observations (x,y) (default: {None})
         point_estimate: either a mean of a median (default: {"mean"})
+        interval: the width of the predictive interval (default: {0.95})
         title: an optional plot title (default: {None})
         legend: whether to show a legend (default: {True})
         ax: matplotlib axis to draw on, if any (default: {None})
     """
     assert point_estimate in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
+    assert 0 <= interval <= 1
 
     ax = ax or plt.gca()
 
     if func is not None and df is not None:
-        plot_true_function(func, df, point_estimate=point_estimate, legend=legend, ax=ax)
+        plot_true_function(
+            func, df, point_estimate=point_estimate, interval=interval, legend=legend, ax=ax
+        )
 
     x = x.ravel()
     lower, upper = np.percentile(post_pred, [2.5, 97.5], axis=0)
@@ -84,7 +105,7 @@ def plot_posterior_predictive(
         upper,
         color=COLORS["predicted"],
         alpha=FILL_ALPHA,
-        label=f"95% Predictive Interval",
+        label=f"{interval*100:.0f}% Predictive Interval",
     )
     ax.plot(x, point_est, color=COLORS["predicted"], label=f"Predicted Mean")
     ax.set_title(title)
@@ -92,7 +113,7 @@ def plot_posterior_predictive(
         ax.legend(bbox_to_anchor=(1.04, 1), borderaxespad=0)
 
 
-def plot_illustration(ppc_func, df, conditionals=True, title=None):
+def plot_illustration(ppc_func, df, conditionals=True, interval=0.95, title=None):
     """Visualize the miscalibrated posterior predictive to illustrate
     the calibration algorithm.
 
@@ -102,13 +123,16 @@ def plot_illustration(ppc_func, df, conditionals=True, title=None):
         ppc_func: a scipy.stats distribution for the posterior predictive
         df: a pandas DataFrame of observations (x, y)
         conditionals: whether to plot the conditional densities (default: {True})
+        interval: the width of the predictive interval (default: {0.95})
         title: an optional plot title (default: {None})
     """
-    # Plot the observations and 95% predictive interval
+    # Plot the observations and the predictive interval
+    assert 0 <= interval <= 1
+
     fig, ax = plt.subplots(1, 1)
     x = np.linspace(df.x.min(), df.x.max(), num=1000)
     distribution = ppc_func(x)
-    lower, upper = distribution.interval(0.95)
+    lower, upper = distribution.interval(interval)
 
     ax.fill_between(
         x,
@@ -116,7 +140,7 @@ def plot_illustration(ppc_func, df, conditionals=True, title=None):
         upper,
         color=COLORS["predicted"],
         alpha=FILL_ALPHA,
-        label="95% Predictive Interval",
+        label=f"{interval*100:.0f}% Predictive Interval",
     )
     ax.scatter(df.x, df.y, s=10, color=COLORS["observations"], label="Observations")
     ax.plot(x, distribution.mean(), color=COLORS["predicted"], label="Predicted Mean")
@@ -297,7 +321,7 @@ def calibration_plot(predicted_quantiles, model):
     plt.legend()
 
 
-def plot_calibration_results(results, qc, func, figsize=(8.5, 3.5)):
+def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5)):
     """Plot the posterior predictive before and after calibration
 
     Args:
@@ -307,6 +331,7 @@ def plot_calibration_results(results, qc, func, figsize=(8.5, 3.5)):
         qc: a fitted QuantileCalibration object
         df: a pandas DataFrame of observations (x, y)
         func: the true function, a scipy.stats distribution
+        interval: the width of the predictive interval (default: {0.95})
         figsize: the overall size of the matplotlib figure, which will be split in
             two subplots (default: {(8.5, 3.5)})
     """
@@ -315,7 +340,10 @@ def plot_calibration_results(results, qc, func, figsize=(8.5, 3.5)):
     post_pred_x = results["post_pred_x"]
     df = results["df"]
 
-    q = [0.025, 0.5, 0.975]
+    assert 0 <= interval <= 1
+    q_alpha = (1 - interval) / 2
+    low, high = 1 - interval - q_alpha, interval + q_alpha
+    q = [low, 0.5, high]
     quantiles = [q, qc.inverse_transform(q)]
     titles = ["Before Calibration", "After Calibration"]
 
@@ -324,9 +352,14 @@ def plot_calibration_results(results, qc, func, figsize=(8.5, 3.5)):
     for i, axis in enumerate(ax):
         # Plot the true function
         distribution = func(x)
-        lower, upper = distribution.interval(0.95)
+        lower, upper = distribution.interval(interval)
         true_interval = axis.fill_between(
-            x, lower, upper, color=COLORS["true"], alpha=FILL_ALPHA, label="True 95% Interval",
+            x,
+            lower,
+            upper,
+            color=COLORS["true"],
+            alpha=FILL_ALPHA,
+            label=f"True {interval*100:.0f}% Interval",
         )
         axis.scatter(df.x, df.y, s=3, color=COLORS["observations"], label="Observations")
         true_median = axis.plot(x, distribution.median(), color=COLORS["true"], label="True Median")
@@ -339,31 +372,31 @@ def plot_calibration_results(results, qc, func, figsize=(8.5, 3.5)):
             upper,
             color=COLORS["predicted"],
             alpha=FILL_ALPHA,
-            label=f"95% Predictive Interval",
+            label=f"{interval*100:.0f}% Predictive Interval",
         )
         predicted_median = axis.plot(
             x, median, color=COLORS["predicted"], label=f"Predicted Median"
         )
 
-    # Compute the calibration error and PICP-95, before calibration
+    # Compute the calibration error and PICP, before calibration
     uncalibrated_quantiles = calculate_quantiles(post_pred_x.T, df[["y"]].values)
     cal_error = calibration_error(uncalibrated_quantiles)
-    picp95 = picp(uncalibrated_quantiles)
+    picp_value = picp(uncalibrated_quantiles, interval=interval)
     ax[0].text(
         0.96,
         0.06,
-        f"Calibr. {cal_error:.3f}\nPICP  {picp95:.3f}",
+        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}",
         horizontalalignment="right",
         transform=ax[0].transAxes,
     )
     # After calibration:
     calibrated_quantiles = qc.transform(uncalibrated_quantiles)
     cal_error = calibration_error(calibrated_quantiles)
-    picp95 = picp(calibrated_quantiles)
+    picp_value = picp(calibrated_quantiles, interval=interval)
     ax[1].text(
         0.96,
         0.06,
-        f"Calibr. {cal_error:.3f}\nPICP  {picp95:.3f}",
+        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}",
         horizontalalignment="right",
         transform=ax[1].transAxes,
     )
