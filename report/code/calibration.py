@@ -130,6 +130,19 @@ class QuantileCalibration:
         return predicted_quantiles
 
 def calibrate_posterior_predictive(post_pred, qc):
+    """ Function to calibrate posterior predictive.
+
+    This allows the calibrated model to make predictions. This function is required to compute
+    mean and log likelihood of the calibrated model.
+
+    Args:
+        post_pred: posterior predictive of shape (num samples, num X values)
+        qc: calibration object as defined in class QuantileCalibration
+
+    Returns:
+        calibrated posterior predictive of shape (num samples, num X values)
+    """
+
     # Need to convert from jax array to dask array to avoid
     # out of memory eror in the next step.
     # This also helps to parallelize the task to all cpu cores.
@@ -149,11 +162,11 @@ def calibrate_posterior_predictive(post_pred, qc):
 
     # inverse CDF by looking up existing samples with np.quantile()
     da_combined = da.vstack([res_main_post_pred, inverse_calibrated_pp_quantiles.compute()])
-    calibrated_pp_quantiles = da.apply_along_axis(
+    calibrated_post_pred = da.apply_along_axis(
                                     lambda q: np.quantile(q[:post_pred_shape[0]],
                                                             q[post_pred_shape[0]:],
                                                             axis=0),
                                     0,
                                     da_combined).compute()
 
-    return calibrated_pp_quantiles
+    return calibrated_post_pred
