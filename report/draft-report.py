@@ -489,6 +489,13 @@ display(table)
 # 5. Train calibration transformation using $\mathcal{D}$ via isotonic regression (or other models). Running prediction on the trained model results in a transformation $R$, $[0,1] \to [0,1]$. We can compose the calibrated model as $R\circ H\left(x_t\right)$.
 # 6. To find the calibrated confidence intervals, we need to remap the original upper and lower limits. For example, the upper limit $y_{t\ high}$ is mapped to the calibrated value $y_{t\ high}'$ as:
 # $$y_{t\ high}'=\left[H\left(x_t\right)\right]^{-1}\left(R^{-1}\left\{\left[H\left(x_t\right)\right]\left(y_{t\ high}\right)\right\}\right)$$
+#
+# # Making Predictions with the Calibrated Model
+# In order to make predictions with the calibrated model, we need to construct its posterior predictive. This can be done by applying the equation in step 6 to all uncalibrated posterior predictive samples. The resulting set of samples reflect the calibrated posterior predictive distribution.
+#
+# Point estimates, like mean, can then be computed for the calibrated posterior predictive.
+#
+# In our implementation, we obtain $R^{-1}$ by training the isotonic regression in reverse (swapping the calibration dataset inputs). We obtain $\left[H\left(x_t\right)\right]^{-1}$ by doing a quantile lookup from the uncalibrated posterior predictive samples with ```numpy.quantile()```.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Diagnostics
@@ -575,12 +582,20 @@ check_convergence(res_main, res_holdout, func=polynomial, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=polynomial)
-# -
-
-plot_calibration_results(res_main, qc, func=polynomial, point_est="mean")
 
 # + [markdown] {"slideshow": {"slide_type": "-"}}
 # Both quantitative metrics show significant improvement. The absolute value of the calibration error depends on binning (here we use 10 equally spaced quantiles).
+# -
+
+# The charts below show the means of the calibrated and uncalibrated posterior predictives, together with the true mean.
+#
+# We see that the means coincide with the medians shown above. This is expected as our data is generated with Gaussian noise, which has a symmetric distribution. For all subsequent experiments with Gaussian noise, we only show the median plots.
+
+plot_calibration_results(res_main, qc, func=polynomial, point_est="mean")
+
+# The charts below show the calibrated posterior predictive constructed according to Detailed Steps Part(2). Each chart corresponds to a specific X value, showing the details of at that point. We see that the calibrated posterior predictive in this experiment is more spread out. This agrees with the wider uncertainty bands. We observe that the calibrated posterior predictive is not smooth compared to the uncalibrated one.
+
+plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # High Noise: Recalibration
@@ -601,9 +616,6 @@ check_convergence(res_main, res_holdout, func=polynomial, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=polynomial)
-# -
-
-plot_calibration_results(res_main, qc, func=polynomial, point_est="mean")
 
 # + [markdown] {"slideshow": {"slide_type": "-"}}
 # The Predictive Interval Coverage Probability (PICP) is calculated for the 95% interval. It is improved after recalibration, i.e. 95% of the observations are covered by that interval.
@@ -647,9 +659,6 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=func)
-# -
-
-plot_calibration_results(res_main, qc, func=func, point_est="mean")
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Wrong Prior: Recalibration
@@ -670,9 +679,6 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=func)
-# -
-
-plot_calibration_results(res_main, qc, func=func, point_est="mean")
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Wrong Noise: Recalibration
@@ -693,11 +699,6 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=func)
-# -
-
-plot_calibration_results(res_main, qc, func=func, point_est="mean")
-
-plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 
 # + [markdown] {"slideshow": {"slide_type": "-"}}
 # This fact is also not reflected in the metrics, which show improvement across the board.
@@ -721,9 +722,6 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=func)
-# -
-
-plot_calibration_results(res_main, qc, func=func, point_est="mean")
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Wrong Likelihood: Recalibration
@@ -744,9 +742,6 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=func)
-# -
-
-plot_calibration_results(res_main, qc, func=func, point_est="mean")
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Approximate Inference: Recalibration
@@ -772,9 +767,6 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=func)
-# -
-
-plot_calibration_results(res_main, qc, func=func, point_est="mean")
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # VI with Noise Misspecification: Recalibration
@@ -795,9 +787,6 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=func)
-# -
-
-plot_calibration_results(res_main, qc, func=func, point_est="mean")
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Heteroscedastic Dataset
@@ -839,7 +828,7 @@ check_convergence(res_main, res_holdout, func=heteroscedastic, plot=DEBUG)
 plot_calibration_results(res_main, qc, func=heteroscedastic)
 # -
 
-plot_calibration_results(res_main, qc, func=heteroscedastic, point_est="mean")
+# From the plots below, we see how the calibration transforms the posterior predictive. We see that at both X=-2 and X=0, the transformation is the same. This agrees with the observation above, that the uncertainty band widens uniformly across all values of X.
 
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 
@@ -925,7 +914,13 @@ check_convergence(res_main, res_holdout, func=gamma_polynomial, plot=DEBUG)
 plot_calibration_results(res_main, qc, func=gamma_polynomial)
 # -
 
+# Here, we observe that due to the non-symmetric noise in our data generation, the median and the mean of the uncalibrated posterior predictive differ. It appears that the median deviate further from the true median.
+#
+# We see that calibration improves the posterior predictive median while not affecting the mean.
+
 plot_calibration_results(res_main, qc, func=gamma_polynomial, point_est="mean")
+
+# Although the data is generated with non-gaussian noise, our model uses a guassian noise model. Therefore, the uncalibrated predictive has a symmetric distribution. We observe that in this case, the calibration algorithm is able to adjust the posterior predictive to become skewed to track the data.
 
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 
