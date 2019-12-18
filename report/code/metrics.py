@@ -60,7 +60,8 @@ def log_likelihood(func, post_pred, y):
     The func function should take "y" as its mean.
 
     Args:
-        func: a scipy.stats function
+        func: likelihood function of the noise model,
+            a scipy.stats distribution, function of y
         post_pred: posterior predictive of shape (num samples, num obervations)
         y: y values of shape (num observations,)
 
@@ -68,7 +69,7 @@ def log_likelihood(func, post_pred, y):
         expected log likelihood
     """
 
-    dist = func(y)
-    ll = np.sum(dist.logpdf(post_pred.rehshape(-1, 1))) / post_pred.shape[0]
+    dist = func(y.ravel())
+    ll = np.sum(dist.logpdf(post_pred.reshape(-1, 1))) / post_pred.shape[0]
 
     return ll
