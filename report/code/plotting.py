@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import scipy.stats
 from numpyro.infer import MCMC
 
@@ -6,9 +7,11 @@ import matplotlib.pyplot as plt
 from matplotlib import transforms
 from matplotlib.patches import Rectangle
 
-from code.calibration import calculate_quantiles
+from code.calibration import calculate_quantiles, calibrate_posterior_predictive
 from code.inference import run_diagnostics
-from code.metrics import calibration_error, picp
+from code.metrics import calibration_error, picp, log_likelihood
+
+from code.calibration import calibrate_posterior_predictive
 
 # Colors used for plotting the posterior predictives
 COLORS = {
@@ -320,25 +323,30 @@ def calibration_plot(predicted_quantiles, model):
     plt.ylabel("Observed Quantiles")
     plt.legend()
 
-
-def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5)):
+def plot_calibration_results(result, qc, func, interval=0.95, figsize=(8.5, 3.5),
+                                point_est="median"):
     """Plot the posterior predictive before and after calibration
 
     Args:
-        x: an array of X's of the shape (N,), (N, 1) or (1, N)
-        post_pred: the posterior predictive, array of shape (M, N),
-            where M is the number of samples for each X (e.g. 1000)
+        result: a result diction returned by calibrate()
         qc: a fitted QuantileCalibration object
         df: a pandas DataFrame of observations (x, y)
         func: the true function, a scipy.stats distribution
         interval: the width of the predictive interval (default: {0.95})
         figsize: the overall size of the matplotlib figure, which will be split in
             two subplots (default: {(8.5, 3.5)})
+        point_est: indicate whether to use mean or median as the point estimate
     """
-    x = results["X_test"].ravel()
-    post_pred = results["post_pred"]
-    post_pred_x = results["post_pred_x"]
-    df = results["df"]
+    assert point_est in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
+
+
+    x = result["X_test"].ravel()
+    post_pred = result["post_pred"]
+    if point_est == "mean":
+        calibrated_post_pred = calibrate_posterior_predictive(result["post_pred"], qc)
+    post_pred_x = result["post_pred_x"]
+
+    df = result["df"]
 
     assert 0 <= interval <= 1
     q_alpha = (1 - interval) / 2
@@ -362,7 +370,13 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
             label=f"True {interval*100:.0f}% Interval",
         )
         axis.scatter(df.x, df.y, s=3, color=COLORS["observations"], label="Observations")
-        true_median = axis.plot(x, distribution.median(), color=COLORS["true"], label="True Median")
+        if point_est == "mean":
+            point_est_value = distribution.mean()
+            true_label = "True Mean"
+        else:
+            point_est_value = distribution.median()
+            true_label = "True Median"
+        true_point_est = axis.plot(x, point_est_value, color=COLORS["true"], label=true_label)
         axis.set_title(titles[i])
 
         lower, median, upper = np.quantile(post_pred, quantiles[i], axis=0)
@@ -374,14 +388,21 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
             alpha=FILL_ALPHA,
             label=f"{interval*100:.0f}% Predictive Interval",
         )
-        predicted_median = axis.plot(
-            x, median, color=COLORS["predicted"], label=f"Predicted Median"
-        )
+        if point_est == "mean":
+            mean = np.mean(calibrated_post_pred, axis=0)
+            predicted_point_est = axis.plot(
+                x, mean, color=COLORS["predicted"], label=f"Predicted Mean"
+            )
+        else:
+            predicted_point_est = axis.plot(
+                x, median, color=COLORS["predicted"], label=f"Predicted Median"
+            )
 
     # Compute the calibration error and PICP, before calibration
     uncalibrated_quantiles = calculate_quantiles(post_pred_x.T, df[["y"]].values)
     cal_error = calibration_error(uncalibrated_quantiles)
     picp_value = picp(uncalibrated_quantiles, interval=interval)
+
     ax[0].text(
         0.96,
         0.06,
@@ -393,6 +414,7 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
     calibrated_quantiles = qc.transform(uncalibrated_quantiles)
     cal_error = calibration_error(calibrated_quantiles)
     picp_value = picp(calibrated_quantiles, interval=interval)
+
     ax[1].text(
         0.96,
         0.06,
@@ -402,7 +424,7 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
     )
 
     # Add a legend under the plots
-    handles = [true_interval, true_median[0], predicted_interval, predicted_median[0]]
+    handles = [true_interval, true_point_est[0], predicted_interval, predicted_point_est[0]]
     labels = [h.get_label() for h in handles]
     fig.legend(handles, labels, loc="lower center", ncol=len(labels))
     fig.tight_layout(rect=(0, 0.1, 1, 1))
@@ -459,3 +481,38 @@ def check_convergence(res_main, res_holdout, func, plot=True, point_estimate="me
                     "{name}: minimum ESS {min_ess:,.2f}, "
                     "maximum Gelman-Rubin {max_rhat:.2f}".format(name=name, **diagnostics)
                 )
+
+def plot_calibration_slice(result, slice_locations, qc):
+    """Plots calibrated vs uncalibrated posterior predictive cross-sections.
+
+    Args:
+        result: a result diction returned by calibrate()
+            slice_locations: numpy array, quantiles of X_test values at which to draw cross-sections
+        qc: a fitted QuantileCalibration object
+    """
+
+    cal_post_pred = calibrate_posterior_predictive(result['post_pred'], qc)
+    slices = np.floor(cal_post_pred.shape[1] * slice_locations).astype(int)
+
+    uncal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.02),
+                                                   0, result['post_pred'][:,slices]))
+    cal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.02),
+                                                 0, cal_post_pred[:,slices]))
+    lower_limit = min(uncal_lower_limit, cal_lower_limit)
+
+    uncal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.98),
+                                                   0, result['post_pred'][:,slices]))
+    cal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.98),
+                                                 0, cal_post_pred[:,slices]))
+    upper_limit = max(uncal_upper_limit, cal_upper_limit)
+
+    x_values = result['X_test'][slices]
+
+    fig, ax = plt.subplots(1,2)
+    for idx in range(len(slices)):
+        pp_df = pd.DataFrame({'calibrated':cal_post_pred[:,slices[idx]],
+                              'uncalibrated':result['post_pred'][:,slices[idx]]})
+        pp_df.plot.kde(ax=ax[idx], xlim=(lower_limit, upper_limit))
+        ax[idx].set_title(f'Posterior Predictive at x={x_values[idx][0]:.2f}')
+        ax[idx].set_xlabel('y')
+    fig.tight_layout()

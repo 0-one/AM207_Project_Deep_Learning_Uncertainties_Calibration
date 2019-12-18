@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def calibration_error(predicted_quantiles, levels=10):
     """Compute the calibration error
 
@@ -70,6 +69,11 @@ def log_likelihood(func, post_pred, y):
     """
 
     dist = func(y.ravel())
-    ll = np.sum(dist.logpdf(post_pred.reshape(-1, 1))) / post_pred.shape[0]
+    ll = np.sum(
+            np.apply_along_axis(
+                lambda a: np.sum(dist.logpdf(a.reshape(-1, 1))),
+                0, post_pred
+            )
+        ) / post_pred.shape[0]
 
     return ll
