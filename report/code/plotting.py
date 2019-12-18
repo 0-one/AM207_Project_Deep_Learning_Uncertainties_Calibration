@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import scipy.stats
 from numpyro.infer import MCMC
 
@@ -322,14 +323,12 @@ def calibration_plot(predicted_quantiles, model):
     plt.ylabel("Observed Quantiles")
     plt.legend()
 
-def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5),
+def plot_calibration_results(result, qc, func, interval=0.95, figsize=(8.5, 3.5),
                                 point_est="median"):
     """Plot the posterior predictive before and after calibration
 
     Args:
-        x: an array of X's of the shape (N,), (N, 1) or (1, N)
-        post_pred: the posterior predictive, array of shape (M, N),
-            where M is the number of samples for each X (e.g. 1000)
+        result: a result diction returned by calibrate()
         qc: a fitted QuantileCalibration object
         df: a pandas DataFrame of observations (x, y)
         func: the true function, a scipy.stats distribution
@@ -341,16 +340,16 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
     assert point_est in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
 
 
-    x = results["X_test"].ravel()
-    post_pred = results["post_pred"]
+    x = result["X_test"].ravel()
+    post_pred = result["post_pred"]
     if point_est == "mean":
-        calibrated_post_pred = calibrate_posterior_predictive(results["post_pred"], qc)
-    post_pred_x = results["post_pred_x"]
+        calibrated_post_pred = calibrate_posterior_predictive(result["post_pred"], qc)
+    post_pred_x = result["post_pred_x"]
 
     # we need this anyway for expected log likelihood metric
-    calibrated_post_pred_x = calibrate_posterior_predictive(results["post_pred_x"], qc)
+    calibrated_post_pred_x = calibrate_posterior_predictive(result["post_pred_x"], qc)
 
-    df = results["df"]
+    df = result["df"]
 
     assert 0 <= interval <= 1
     q_alpha = (1 - interval) / 2
@@ -407,7 +406,7 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
     cal_error = calibration_error(uncalibrated_quantiles)
     picp_value = picp(uncalibrated_quantiles, interval=interval)
 
-    likelihood_func = results["noise_model"]
+    likelihood_func = result["noise_model"]
 
     loglikelihood = log_likelihood(likelihood_func, post_pred_x, df[["y"]].values)
     ll_message = f"\nE[Log Likelihood] {loglikelihood:.3f}"
@@ -495,8 +494,13 @@ def check_convergence(res_main, res_holdout, func, plot=True, point_estimate="me
                     "maximum Gelman-Rubin {max_rhat:.2f}".format(name=name, **diagnostics)
                 )
 
-def plot_calibration_slice(result, slice_locations):
+def plot_calibration_slice(result, slice_locations, qc):
     """Plots calibrated vs uncalibrated posterior predictive cross-sections.
+
+    Args:
+        result: a result diction returned by calibrate()
+        slice_locations: numpy array, quantiles of X_test values at which to draw cross-sections
+        qc: a fitted QuantileCalibration object
     """
 
     cal_post_pred = calibrate_posterior_predictive(result['post_pred'], qc)
