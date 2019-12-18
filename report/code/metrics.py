@@ -51,3 +51,24 @@ def picp(predicted_quantiles, interval=0.95):
     low, high = 1 - interval - q_alpha, interval + q_alpha
     picp_value = np.mean((predicted_quantiles >= low) & (predicted_quantiles <= high))
     return picp_value
+
+def log_likelihood(func, post_pred, y):
+    """Caluculate the exepcted log likelihood for the observed Y values given a
+    posterior predictive.
+
+    This function expects a "frozen" scipy.stats distribution in the func argument.
+    The func function should take "y" as its mean.
+
+    Args:
+        func: a scipy.stats function
+        post_pred: posterior predictive of shape (num samples, num obervations)
+        y: y values of shape (num observations,)
+
+    Returns:
+        expected log likelihood
+    """
+
+    dist = func(y)
+    ll = np.sum(dist.logpdf(post_pred.rehshape(-1, 1))) / post_pred.shape[0]
+
+    return ll
