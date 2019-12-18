@@ -144,7 +144,7 @@ def calibrate_posterior_predictive(post_pred, qc):
     """
 
     # Need to convert from jax array to dask array to avoid
-    # out of memory eror in the next step.
+    # out of memory error (on a 32GB machine for 8000 samples) in the next step.
     # This also helps to parallelize the task to all cpu cores.
     post_pred_shape = post_pred.shape
     res_main_post_pred = da.from_array(np.array(post_pred),
@@ -154,7 +154,7 @@ def calibrate_posterior_predictive(post_pred, qc):
     uncalibrated_pp_quantiles = (da.sum(res_main_post_pred.T[:, :, np.newaxis]
                                             <= res_main_post_pred.T[:,np.newaxis,:], axis=1).T
                                     / post_pred_shape[0])
-    
+
     # calculate inverse R
     inverse_calibrated_pp_quantiles = da.apply_along_axis(qc.inverse_transform,
                                                             0,
