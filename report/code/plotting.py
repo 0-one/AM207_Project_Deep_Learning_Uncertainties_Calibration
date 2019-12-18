@@ -406,15 +406,10 @@ def plot_calibration_results(result, qc, func, interval=0.95, figsize=(8.5, 3.5)
     cal_error = calibration_error(uncalibrated_quantiles)
     picp_value = picp(uncalibrated_quantiles, interval=interval)
 
-    likelihood_func = result["noise_model"]
-
-    loglikelihood = log_likelihood(likelihood_func, post_pred_x, df[["y"]].values)
-    ll_message = f"\nE[Log Likelihood] {loglikelihood:.3f}"
-
     ax[0].text(
         0.96,
         0.06,
-        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}" + ll_message,
+        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}",
         horizontalalignment="right",
         transform=ax[0].transAxes,
     )
@@ -423,14 +418,10 @@ def plot_calibration_results(result, qc, func, interval=0.95, figsize=(8.5, 3.5)
     cal_error = calibration_error(calibrated_quantiles)
     picp_value = picp(calibrated_quantiles, interval=interval)
 
-    loglikelihood = log_likelihood(likelihood_func, calibrated_post_pred_x,
-                                    df[["y"]].values)
-    ll_message = f"\nE[LogLikelihoo]d {loglikelihood:.3f}"
-
     ax[1].text(
         0.96,
         0.06,
-        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}" + ll_message,
+        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}",
         horizontalalignment="right",
         transform=ax[1].transAxes,
     )
@@ -499,7 +490,7 @@ def plot_calibration_slice(result, slice_locations, qc):
 
     Args:
         result: a result diction returned by calibrate()
-        slice_locations: numpy array, quantiles of X_test values at which to draw cross-sections
+            slice_locations: numpy array, quantiles of X_test values at which to draw cross-sections
         qc: a fitted QuantileCalibration object
     """
 
