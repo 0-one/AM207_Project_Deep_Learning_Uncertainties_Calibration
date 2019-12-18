@@ -3,7 +3,7 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 
-from code.bnn import feedforward
+from code.bnn import feedforward, get_noise_model
 from code.calibration import QuantileCalibration
 from code.inference import sample, simulate_pp, fit_advi, run_diagnostics
 from code.plotting import plot_posterior_predictive
@@ -174,6 +174,7 @@ def calibrate(df_main, df_hold, *, hidden, width, sigma, noise, inference="NUTS"
             {
                 "df": df,
                 "model": model,
+                "noise_model": get_noise_model(noise),
                 "infer": infer,
                 "X_test": X_test,
                 "post_pred": post_pred,

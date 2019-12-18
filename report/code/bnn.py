@@ -1,6 +1,7 @@
 import jax.numpy as np
 import numpyro
 import numpyro.distributions as dist
+import scipy.stats
 
 
 def activation(x):
@@ -44,3 +45,18 @@ def feedforward(X, Y, width=5, hidden=1, sigma=1.0, noise=1.0):
 
     # Likelihood
     numpyro.sample("Y", dist.Normal(z, noise), obs=Y)
+
+def get_noise_model(noise=1.0):
+    """ Construct a frozen scipy distribution that represents the noise model of the BNN.
+
+    The returned distribution is a Guassian for this implementation.
+    The resulting function takes a parameter as the mean.
+
+    Args:
+        noise: standard deviation
+    
+    Returns:
+        a scipy distribution
+    """
+
+    return lambda mu: scipy.stats.norm(loc=mu, scale=noise)

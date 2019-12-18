@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 from matplotlib import transforms
 from matplotlib.patches import Rectangle
 
-from code.calibration import calculate_quantiles
+from code.calibration import calculate_quantiles, calibrate_posterior_predictive
 from code.inference import run_diagnostics
-from code.metrics import calibration_error, picp
+from code.metrics import calibration_error, picp, log_likelihood
+
+from code.calibration import calibrate_posterior_predictive
 
 # Colors used for plotting the posterior predictives
 COLORS = {
@@ -320,8 +322,8 @@ def calibration_plot(predicted_quantiles, model):
     plt.ylabel("Observed Quantiles")
     plt.legend()
 
-
-def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5)):
+def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5),
+                                point_est="median"):
     """Plot the posterior predictive before and after calibration
 
     Args:
@@ -334,10 +336,20 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
         interval: the width of the predictive interval (default: {0.95})
         figsize: the overall size of the matplotlib figure, which will be split in
             two subplots (default: {(8.5, 3.5)})
+        point_est: indicate whether to use mean or median as the point estimate
     """
+    assert point_est in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
+
+
     x = results["X_test"].ravel()
     post_pred = results["post_pred"]
+    if point_est == "mean":
+        calibrated_post_pred = calibrate_posterior_predictive(results["post_pred"], qc)
     post_pred_x = results["post_pred_x"]
+
+    # we need this anyway for expected log likelihood metric
+    calibrated_post_pred_x = calibrate_posterior_predictive(results["post_pred_x"], qc)
+
     df = results["df"]
 
     assert 0 <= interval <= 1
@@ -362,7 +374,13 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
             label=f"True {interval*100:.0f}% Interval",
         )
         axis.scatter(df.x, df.y, s=3, color=COLORS["observations"], label="Observations")
-        true_median = axis.plot(x, distribution.median(), color=COLORS["true"], label="True Median")
+        if point_est == "mean":
+            point_est_value = distribution.mean()
+            true_label = "True Mean"
+        else:
+            point_est_value = distribution.median()
+            true_label = "True Median"
+        true_point_est = axis.plot(x, point_est_value, color=COLORS["true"], label=true_label)
         axis.set_title(titles[i])
 
         lower, median, upper = np.quantile(post_pred, quantiles[i], axis=0)
@@ -374,18 +392,30 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
             alpha=FILL_ALPHA,
             label=f"{interval*100:.0f}% Predictive Interval",
         )
-        predicted_median = axis.plot(
-            x, median, color=COLORS["predicted"], label=f"Predicted Median"
-        )
+        if point_est == "mean":
+            mean = np.mean(calibrated_post_pred, axis=0)
+            predicted_point_est = axis.plot(
+                x, mean, color=COLORS["predicted"], label=f"Predicted Mean"
+            )
+        else:
+            predicted_point_est = axis.plot(
+                x, median, color=COLORS["predicted"], label=f"Predicted Median"
+            )
 
     # Compute the calibration error and PICP, before calibration
     uncalibrated_quantiles = calculate_quantiles(post_pred_x.T, df[["y"]].values)
     cal_error = calibration_error(uncalibrated_quantiles)
     picp_value = picp(uncalibrated_quantiles, interval=interval)
+
+    likelihood_func = results["noise_model"]
+
+    loglikelihood = log_likelihood(likelihood_func, post_pred_x, df[["y"]].values)
+    ll_message = f"\nEst. LogLikelihood {loglikelihood:.3f}"
+
     ax[0].text(
         0.96,
         0.06,
-        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}",
+        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}" + ll_message,
         horizontalalignment="right",
         transform=ax[0].transAxes,
     )
@@ -393,16 +423,21 @@ def plot_calibration_results(results, qc, func, interval=0.95, figsize=(8.5, 3.5
     calibrated_quantiles = qc.transform(uncalibrated_quantiles)
     cal_error = calibration_error(calibrated_quantiles)
     picp_value = picp(calibrated_quantiles, interval=interval)
+
+    loglikelihood = log_likelihood(likelihood_func, calibrated_post_pred_x,
+                                    df[["y"]].values)
+    ll_message = f"\nEst. LogLikelihood {loglikelihood:.3f}"
+
     ax[1].text(
         0.96,
         0.06,
-        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}",
+        f"Calibr. {cal_error:.3f}\nPICP  {picp_value:.3f}" + ll_message,
         horizontalalignment="right",
         transform=ax[1].transAxes,
     )
 
     # Add a legend under the plots
-    handles = [true_interval, true_median[0], predicted_interval, predicted_median[0]]
+    handles = [true_interval, true_point_est[0], predicted_interval, predicted_point_est[0]]
     labels = [h.get_label() for h in handles]
     fig.legend(handles, labels, loc="lower center", ncol=len(labels))
     fig.tight_layout(rect=(0, 0.1, 1, 1))
