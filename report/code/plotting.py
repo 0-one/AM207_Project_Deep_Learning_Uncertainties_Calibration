@@ -346,9 +346,6 @@ def plot_calibration_results(result, qc, func, interval=0.95, figsize=(8.5, 3.5)
         calibrated_post_pred = calibrate_posterior_predictive(result["post_pred"], qc)
     post_pred_x = result["post_pred_x"]
 
-    # we need this anyway for expected log likelihood metric
-    calibrated_post_pred_x = calibrate_posterior_predictive(result["post_pred_x"], qc)
-
     df = result["df"]
 
     assert 0 <= interval <= 1
@@ -512,7 +509,7 @@ def plot_calibration_slice(result, slice_locations, qc):
     x_values = result['X_test'][slices]
 
     fig, ax = plt.subplots(1,2)
-    for idx, s in enumerate(slices):
+    for idx in range(len(slices)):
         pp_df = pd.DataFrame({'calibrated':cal_post_pred[:,slices[idx]],
                               'uncalibrated':result['post_pred'][:,slices[idx]]})
         pp_df.plot.kde(ax=ax[idx], xlim=(lower_limit, upper_limit))
