@@ -697,6 +697,34 @@ plot_calibration_results(res_main, qc, func=func)
 
 plot_calibration_results(res_main, qc, func=func, point_est="mean")
 
+# +
+cal_post_pred = calibrate_posterior_predictive(res_main['post_pred'], qc)
+
+slices = np.floor(cal_post_pred.shape[1] * np.array([0.25, 0.5])).astype(int)
+
+uncal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.005),
+                                               0, res_main['post_pred'][:,slices]))
+cal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.005),
+                                             0, cal_post_pred[:,slices]))
+lower_limit = min(uncal_lower_limit, cal_lower_limit)
+
+uncal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.995),
+                                               0, res_main['post_pred'][:,slices]))
+cal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.995),
+                                             0, cal_post_pred[:,slices]))
+upper_limit = max(uncal_upper_limit, cal_upper_limit)
+
+x_values = res_main['X_test'][slices]
+
+fig, ax = plt.subplots(1,2)
+for idx, s in enumerate(slices):
+    pp_df = pd.DataFrame({'calibrated':cal_post_pred[:,slices[idx]],
+                          'uncalibrated':res_main['post_pred'][:,slices[idx]]})
+    pp_df.plot.kde(ax=ax[idx], xlim=(lower_limit, upper_limit))
+    ax[idx].set_title(f'Posterior Predictive at x={x_values[idx][0]:.2f}')
+    ax[idx].set_xlabel('y')
+fig.tight_layout()
+
 # + [markdown] {"slideshow": {"slide_type": "-"}}
 # This fact is also not reflected in the metrics, which show improvement across the board.
 
@@ -839,6 +867,34 @@ plot_calibration_results(res_main, qc, func=heteroscedastic)
 
 plot_calibration_results(res_main, qc, func=heteroscedastic, point_est="mean")
 
+# +
+cal_post_pred = calibrate_posterior_predictive(res_main['post_pred'], qc)
+
+slices = np.floor(cal_post_pred.shape[1] * np.array([0.25, 0.5])).astype(int)
+
+uncal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.005),
+                                               0, res_main['post_pred'][:,slices]))
+cal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.005),
+                                             0, cal_post_pred[:,slices]))
+lower_limit = min(uncal_lower_limit, cal_lower_limit)
+
+uncal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.995),
+                                               0, res_main['post_pred'][:,slices]))
+cal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.995),
+                                             0, cal_post_pred[:,slices]))
+upper_limit = max(uncal_upper_limit, cal_upper_limit)
+
+x_values = res_main['X_test'][slices]
+
+fig, ax = plt.subplots(1,2)
+for idx, s in enumerate(slices):
+    pp_df = pd.DataFrame({'calibrated':cal_post_pred[:,slices[idx]],
+                          'uncalibrated':res_main['post_pred'][:,slices[idx]]})
+    pp_df.plot.kde(ax=ax[idx], xlim=(lower_limit, upper_limit))
+    ax[idx].set_title(f'Posterior Predictive at x={x_values[idx][0]:.2f}')
+    ax[idx].set_xlabel('y')
+fig.tight_layout()
+
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Discussion: Modeling Heteroscedasticity
 #
@@ -922,6 +978,34 @@ plot_calibration_results(res_main, qc, func=gamma_polynomial)
 # -
 
 plot_calibration_results(res_main, qc, func=gamma_polynomial, point_est="mean")
+
+# +
+cal_post_pred = calibrate_posterior_predictive(res_main['post_pred'], qc)
+
+slices = np.floor(cal_post_pred.shape[1] * np.array([0.25, 0.5])).astype(int)
+
+uncal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.02),
+                                               0, res_main['post_pred'][:,slices]))
+cal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.02),
+                                             0, cal_post_pred[:,slices]))
+lower_limit = min(uncal_lower_limit, cal_lower_limit)
+
+uncal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.98),
+                                               0, res_main['post_pred'][:,slices]))
+cal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.98),
+                                             0, cal_post_pred[:,slices]))
+upper_limit = max(uncal_upper_limit, cal_upper_limit)
+
+x_values = res_main['X_test'][slices]
+
+fig, ax = plt.subplots(1,2)
+for idx, s in enumerate(slices):
+    pp_df = pd.DataFrame({'calibrated':cal_post_pred[:,slices[idx]],
+                          'uncalibrated':res_main['post_pred'][:,slices[idx]]})
+    pp_df.plot.kde(ax=ax[idx], xlim=(lower_limit, upper_limit))
+    ax[idx].set_title(f'Posterior Predictive at x={x_values[idx][0]:.2f}')
+    ax[idx].set_xlabel('y')
+fig.tight_layout()
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Preliminary Evaluation
