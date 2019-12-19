@@ -823,7 +823,6 @@ model_params = {
     "sigma": 1.0,
     "noise": 0.5,
 }
-
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
 res_main, res_holdout, qc = calibrate(df, df_hold, inference="VI", **model_params, **vi_params)
 # Plot the results before and after calibration

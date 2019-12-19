@@ -482,12 +482,12 @@ def check_convergence(res_main, res_holdout, func, plot=True, point_estimate="me
                 )
 
 
-def plot_calibration_slice(result, slice_locations, qc):
+def plot_calibration_slice(result, slice_locations, qc, figsize=(8.5, 3.5)):
     """Plots calibrated vs uncalibrated posterior predictive cross-sections.
 
     Args:
         result: a result diction returned by calibrate()
-            slice_locations: numpy array, quantiles of X_test values at which to draw cross-sections
+        slice_locations: numpy array, quantiles of X_test values at which to draw cross-sections
         qc: a fitted QuantileCalibration object
     """
 
@@ -512,15 +512,18 @@ def plot_calibration_slice(result, slice_locations, qc):
 
     x_values = result["X_test"][slices]
 
-    fig, ax = plt.subplots(1, 2)
+    fig, ax = plt.subplots(1, 2, figsize=figsize, sharey=True, tight_layout=True)
     for idx in range(len(slices)):
         pp_df = pd.DataFrame(
             {
-                "calibrated": cal_post_pred[:, slices[idx]],
-                "uncalibrated": result["post_pred"][:, slices[idx]],
+                "Uncalibrated": result["post_pred"][:, slices[idx]],
+                "Calibrated": cal_post_pred[:, slices[idx]],
             }
         )
-        pp_df.plot.kde(ax=ax[idx], xlim=(lower_limit, upper_limit))
-        ax[idx].set_title(f"Posterior Predictive at x={x_values[idx][0]:.2f}")
-        ax[idx].set_xlabel("y")
-    fig.tight_layout()
+        pp_df.plot.kde(
+            ax=ax[idx],
+            xlim=(lower_limit, upper_limit),
+            color=[COLORS["predicted"], COLORS["calibrated"]],
+        )
+        ax[idx].set_title(f"Posterior Predictive at $X={x_values[idx][0]:.2f}$")
+        ax[idx].set_xlabel("Y")
