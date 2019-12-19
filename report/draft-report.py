@@ -346,8 +346,7 @@ vi.plot_loss()
 #   $$
 #   \hat P(p)=\left|\left\{y_t\mid \left[H\left(x_t\right)\right]\left(y_t\right)\lt p, t=1\ldots T\right\}\right|/T
 #   $$
-#
-#
+#   
 # 2. Train a model $R$ (e.g. isotonic regression) on $\mathcal{D}$.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
