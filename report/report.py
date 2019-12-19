@@ -69,7 +69,7 @@ DEBUG = False
 #
 # Project team: Piotr Pekala, Benjamin Yuen, Dmitry Vukolov
 #
-# Source code available in the [GitHub repository](https://github.com/0-one/AM207_Project_Deep_Learning_Uncertainties_Calibration/tree/develop).
+# Source code available in the [GitHub repository](https://github.com/0-one/AM207_Project_Deep_Learning_Uncertainties_Calibration).
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Outline
