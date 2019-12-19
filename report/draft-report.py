@@ -67,7 +67,9 @@ DEBUG = False
 #
 # Analysis of the paper by [Kuleshov et al. (2018)](https://arxiv.org/pdf/1807.00263)
 #
-# Project team: Piotr Pekala, Benjamin Yuen, Dmitry Vukolov, Alp Kutlualp
+# Project team: Piotr Pekala, Benjamin Yuen, Dmitry Vukolov
+#
+# Source code available in the [GitHub repository](https://github.com/0-one/AM207_Project_Deep_Learning_Uncertainties_Calibration/tree/develop).
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Outline
