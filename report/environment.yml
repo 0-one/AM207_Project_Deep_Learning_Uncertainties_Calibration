@@ -1,0 +1,16 @@
+name: am207
+channels:
+  - defaults
+dependencies:
+  - python=3.7
+  - notebook
+  - numpy
+  - matplotlib
+  - pandas
+  - scikit-learn
+  - scipy
+  - dask>=2.9.0
+  - pip
+  - pip:
+    - numpyro==0.2.3
+

@@ -1,4 +1,5 @@
-# AM207_Project_Deep_Learning_Uncertainties_Calibration
+# Calibration of Bayesian Neural Networks
 
-AM207 - 2019 Fall Project - Accurate Uncertainties for Deep Learning Using Calibrated Regression
+Analysis of the paper [Accurate Uncertainties for Deep Learning Using Calibrated Regression](https://arxiv.org/pdf/1807.00263) by Kuleshov et al. (2018)
 
+AM207 Project, Fall 2019
