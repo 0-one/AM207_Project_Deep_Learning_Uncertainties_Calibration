@@ -155,12 +155,12 @@ model_params = {
 # Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 # + [markdown] {"slideshow": {"slide_type": "-"}}
-# Naturally, our statements regarding the adequacy of epistemic uncertainty are subjective due to the absence of universal quantitative metrics.
+# Naturally, our statements regarding the adequacy of epistemic uncertainty are subjective due to the absence of universal quantitative metrics. In our case, we know the true data-generating function, which impacts our expectations of the right width of the 95% predictive interval in out of distribution regions.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Wrong Prior: Too Wide
 #
-# The prior on the network weights defines epistemic uncertainty. A higher than necessary variance of the prior results in a significantly larger and most likely unreasonable epistemic uncertainty. Even without knowing the ground truth we can hypothesize that the data is coming from the same function, so there should be a limit to the amount of epistemic uncertainty:
+# The prior on the network weights defines epistemic uncertainty. A higher than necessary variance of the prior results in a significantly larger and most likely unreasonable epistemic uncertainty:
 
 # + {"slideshow": {"slide_type": "-"}}
 model_params = {
@@ -171,6 +171,9 @@ model_params = {
 }
 # Run the No-U-Turn sampler, generate the posterior predictive and plot it
 mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
+
+# + [markdown] {"slideshow": {"slide_type": "-"}}
+# In the more general case we wouldn't be able to formulate our expectations of the appropriate amount of epistemic uncertainty if **(1)** the true data-generating process was unknown and/or **(2)** the data was not possible to visualize, or **(3)** there were no quantitative metric that takes into account the downstream task.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Wrong Prior: Too Narrow
@@ -503,9 +506,9 @@ display(table)
 #
 # Point estimates, like the mean, can then be computed for the calibrated posterior predictive.
 #
-# In our implementation, we obtain $R^{-1}$ by training isotonic regression in reverse (swapping the calibration dataset inputs). We obtain $\left[H\left(x_t\right)\right]^{-1}$ by doing a quantile lookup from the uncalibrated posterior predictive samples with ```numpy.quantile()```.
+# To directly sample from the calibrated posterior predictive, we can also use the inverse CDF method. Recall that the CDF is $R\circ H\left(x_t\right)$, and the inverse is $H\left(x_t\right)^{-1}\circ R^{-1}$. We can therefore sample from a uniform distribution and then apply the calibrated inverse empirical CDF to obtain further samples.
 #
-# To directly sample from the calibrated posterior predictive, we can also use the inverse CDF method. Recall that the CDF is $R\circ H\left(x_t\right)$, and the inverse is $H\left(x_t\right)^{-1}\circ R^{-1}$. We can therefore sample from a uniform distribution and then apply the calibrated inverse CDF to obtain further samples.
+# In our implementation, we obtain $R^{-1}$ by training isotonic regression in reverse (swapping the calibration dataset inputs). We obtain $\left[H\left(x_t\right)\right]^{-1}$ by doing a quantile lookup from the uncalibrated posterior predictive samples with ```numpy.quantile()```.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Diagnostics
@@ -609,10 +612,13 @@ plot_calibration_results(res_main, qc, func=polynomial, point_est="mean")
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Conditional Distributions
 #
-# Each of the charts below corresponds to a cross-section at a specific value of $X$, showing the conditional posterior predictive of at that point. We see that the calibrated posterior predictive in this experiment is more spread out, which agrees with the wider uncertainty bands. We also observe that the calibrated posterior predictive is not smooth and not unimodal compared to the uncalibrated one:
+# Each of the charts below corresponds to a cross-section at a specific value of $X$, showing the conditional posterior predictive at that point. We see that the calibrated posterior predictive in this experiment is more spread out, which agrees with the wider uncertainty bands:
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
+
+# + [markdown] {"slideshow": {"slide_type": "-"}}
+# The calibrated posterior predictive isn't smooth and unimodal like the uncalibrated one, which is an artifact of a small dataset. If we were to increase the number of observations, the calibrated densities produced by isotonic regression would become more smooth.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # High Noise: Recalibration
@@ -640,7 +646,7 @@ plot_calibration_results(res_main, qc, func=polynomial)
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Missing or Insufficient Data
 #
-# The next experimental dataset is the one we used previously in our miscalibration examples — a third-degree polynomial with a gap in the middle. This will allow us to evaluate the impact of the calibration algorithm on epistemic uncertainty.
+# The next experimental dataset is the one we used previously in our miscalibration examples — a third-degree polynomial with a gap in the middle. This will allow us to evaluate the impact of the calibration algorithm on epistemic uncertainty for out-of-distribution examples.
 
 # + {"slideshow": {"slide_type": "-"}}
 # Define the true function and generate observations
@@ -947,14 +953,23 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Evaluation of the Claims
 #
-# Overall, our understanding is that the claims made by the authors of the paper are valid. In strict accordance with the definition of *quantile-calibrated* regression output, their method produces uncertainty estimates that are well-calibrated, *given enough i.i.d. data*. The employed definition of a well-calibrated output involves matching the *marginal* probabilities of the response variable $Y$.
+# Overall, our understanding is that the claims made by the authors of the paper are valid. In strict accordance with the definition of *quantile-calibrated* regression output, their method produces well-calibrated uncertainty estimates, *given enough i.i.d. data*. The employed definition of a well-calibrated output involves matching the *marginal* probabilities of the response variable $Y$.
 #
 # ### Advantages:
 # - **Sound & simple:** The algorithm is statistically sound, is very simple to implement and easy to apply to any regression model.
 # - **Model-agnostic:** The calibration algorithm is model-agnostic, which is both its strength (as it can be applied in a post-processing step to any black-box model) and its weakness (since it doesn't understand the output of the model and may perform arbitrary mapping of the quantiles).
 # - **Avoids overfitting:** The quantiles are not perfectly calibrated, which would pose an issue of overfitting, but are calibrated reasonably well to the empirical ones using a hold-out dataset or cross-validation.
+
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
+# # Evaluation of the Claims (cont.)
+#
+# ### Additional advantages of the algorithm:
 # - **Improves aleatoric uncertainty:** The calibration algorithm performs well in terms of aleatoric uncertainty on homoscedastic datasets with no missing data.
 # - **Excels on non-Gaussian data:** Due to the non-parametric nature of the algorithm, it also excels if the true noise of the data is not Gaussian.
+# - **Preserves or improves point estimates**
+#   - In all cases, both Gaussian and non-Gaussian, the algorithm preserved the mean
+#   - In all Gaussian noise cases, the algorithm preserved the median
+#   - In the non-Gaussian case, the uncalibrated median was off, and the calibration algorithm improved it
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Evaluation of the Claims (cont.)
@@ -966,6 +981,7 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # - **Can't fix a bad model:** The algorithm is unable to fix a bad model, e.g. the one with bias due to an incorrect combination of the prior and network architecture.
 # - **Should be used with care on heteroscedastic data**: The technique also cannot remedy bad posterior predictives obtained on heteroscedastic datasets, occasionally making them worse. The algorithm maps quantiles uniformly across the input space, which only makes sense if the model is capturing heteroscedastic noise.
 # - **Needs a lot of data:** Heavy dependence on sufficient (ideally infinite) i.i.d. data might pose a problem in practice, as the dimensionality of the problem grows.
+# - **May cause multimodality:** When the dataset is small, the calibrated posterior predictive is not smooth and in extreme cases may display multimodality, absent in the original uncalibrated distribution.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Future Work
