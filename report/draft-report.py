@@ -524,7 +524,7 @@ calibration_plot(predicted_quantiles_test, model=ir)
 # Several alternatives are available, each with specific advantages and disadvantages:
 #
 # **1. Calibration error**
-# $$cal(F_1, y_1, ..., F_N, y_N ) = \sum_{j=1}^m w_j \cdot (p_j − \hat{p}_j)^2$$
+# $$cal(F_1, y_1, ..., F_N, y_N ) = \sum_{j=1}^m w_j \cdot (p_j-\hat{p}_j)^2$$
 # Provides a synthetic measure representing the overall *'distance'* of the points on the calibration curve from the $45^\circ$ straight line. The weights ($w_j$) might be used to reduce the importance of intervals containing few observations. The value of $0$ indicates perfect calibration. The metric is sensitive to binning.
 #
 # **2. Predictive RMSE**
