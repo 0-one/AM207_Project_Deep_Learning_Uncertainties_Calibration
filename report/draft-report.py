@@ -638,7 +638,7 @@ plot_calibration_results(res_main, qc, func=polynomial)
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Missing or Insufficient Data
 #
-# The next dataset is the one we used previously in our miscalibration examples — a third-degree polynomial with a gap in the middle. This will allow us to evaluate the impact of the calibration algorithm on epistemic uncertainty.
+# The next experimental dataset is the one we used previously in our miscalibration examples — a third-degree polynomial with a gap in the middle. This will allow us to evaluate the impact of the calibration algorithm on epistemic uncertainty.
 
 # + {"slideshow": {"slide_type": "-"}}
 # Define the true function and generate observations
@@ -658,7 +658,7 @@ plot_true_function(func, df, title=f"True Function: {func.latex}")
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Proper Posterior: Recalibration
 #
-# We sample from a BNN that produces a reasonably good posterior predictive, both in terms of aleatoric and epistemic uncertainty. After calibration, epistemic uncertainty shrinks, but only slightly. Since our definition of "good" epistemic uncertainty is subjective, the algorithm doesn't seem to ruin a valid model. However, epistemic uncertainty does become more asymmetric than before to calibration:
+# We first sample from a BNN that produces a reasonably good posterior predictive, both in terms of aleatoric and epistemic uncertainty. After calibration, epistemic uncertainty shrinks, but only slightly. Since our definition of "good" epistemic uncertainty is subjective, the algorithm doesn't seem to ruin a valid model:
 
 # + {"slideshow": {"slide_type": "skip"}}
 model_params = {
@@ -716,12 +716,12 @@ check_convergence(res_main, res_holdout, func, plot=DEBUG)
 plot_calibration_results(res_main, qc, func=func)
 
 # + [markdown] {"slideshow": {"slide_type": "-"}}
-# This fact is also not reflected in the metrics, which show improvement across the board.
+# This fact is also not reflected in the metrics that we're using, which show improvement across the board.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Wrong Noise: Recalibration
 #
-# Analogously, if aleatoric uncertainty is underestimated by the model, after recalibration, it will be aligned with the data as much as possible, while epistemic uncertainty will be blown up. The authors of the method explicitly state that the suggested approach only works given enough i.i.d. data. Here we see one instance of how it fails:
+# Analogously, if aleatoric uncertainty is underestimated by the model, after recalibration, it will be aligned with the data as much as possible, while epistemic uncertainty will be blown up. The authors of the method explicitly state that the suggested approach only works given enough i.i.d. data. Here we see one instance of how the method fails:
 
 # + {"slideshow": {"slide_type": "skip"}}
 model_params = {
@@ -836,7 +836,9 @@ res_main, res_holdout, qc = calibrate(df, df_hold, inference="VI", **model_param
 plot_calibration_results(res_main, qc, func=heteroscedastic)
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# From the plots below, we see how the calibration transforms the posterior predictive. We see that at both X=-2 and X=0, the transformation is the same. This agrees with the observation above, that the uncertainty band widens uniformly across all values of X.
+# # Conditional Distributions
+#
+# From the plots below, we see how calibration transforms the posterior predictive. We see that at both $X=-2$ and $X=0$, the transformation is the same, only shifted according to the value of $Y$. This agrees with the previous observation, that the uncertainty band widens uniformly across all values of $X$. The calibrated conditional posterior predictive is also multimodal:
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
@@ -844,7 +846,7 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Issue with the Definition of Quantile Calibration
 #
-# The resulting posterior predictive after recalibration does a bad job of capturing heteroscedastic noise in the previous example. Yet, from the perspective of the calibration error and the calibration plot, calibration has been significantly improved:
+# The resulting posterior predictive after recalibration does a bad job of capturing heteroscedastic noise in our latest example. Yet, from the perspective of the calibration error and the calibration plot, calibration has been significantly improved:
 
 # + {"slideshow": {"slide_type": "-"}}
 # Visualize the calibration plot
@@ -903,23 +905,30 @@ check_convergence(res_main, res_holdout, func=gamma_polynomial, plot=DEBUG)
 plot_calibration_results(res_main, qc, func=gamma_polynomial)
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# Here, we observe that due to the non-symmetric noise in our data generation, the median and the mean of the uncalibrated posterior predictive differ. It appears that the median deviate further from the true median.
+# # Point Estimates: the Median and the Mean
 #
-# We see that calibration improves the posterior predictive median while not affecting the mean.
+# Due to asymmetric noise in our data generation process, the median and the mean of the uncalibrated posterior predictive differ. It appears that the median deviates further from the true median.
+#
+# We also see that calibration improves the posterior predictive median while not affecting the mean:
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=gamma_polynomial, point_est="mean")
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# Although the data is generated with non-gaussian noise, our model uses a guassian noise model. Therefore, the uncalibrated predictive has a symmetric distribution. We observe that in this case, the calibration algorithm is able to adjust the posterior predictive to become skewed to track the data.
+# # Conditional Distributions
+#
+# Although the data is generated with non-Gaussian noise, our BNN model uses a Gaussian likelihood. Therefore, the uncalibrated predictive has a symmetric distribution. We observe that in this case, the calibration algorithm is able to adjust the posterior predictive to become skewed to track the data:
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
+# -
+
+# # Evaluation
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# # Preliminary Evaluation
+# # Evaluation of the Claims
 #
-# Our preliminary understanding is that the claims made by the authors of the paper are valid. In strict accordance with the definition of *quantile-calibrated* regression output, their method produces uncertainty estimates that are well-calibrated, *given enough i.i.d. data*.
+# Our understanding is that the claims made by the authors of the paper are valid. In strict accordance with the definition of *quantile-calibrated* regression output, their method produces uncertainty estimates that are well-calibrated, *given enough i.i.d. data*.
 #
 # **Advantages:**
 # - **Sound & simple:** The algorithm is statistically sound, is very simple to implement and easy to apply to any regression model.
@@ -929,7 +938,7 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # - **Excels on non-Gaussian data:** Due to the non-parametric nature of the algorithm, it also excels if the true noise of the data is not Gaussian.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# # Preliminary Evaluation
+# # Evaluation of the Claims: Failures
 #
 # **Cases of failure:**
 # - **Distorts epistemic uncertainty:** The quantile-based calibration, however, doesn't know how to deal with epistemic uncertainty due to its reliance on data availability. In certain situations, this might destroy or distort originally reasonable epistemic uncertainty.
