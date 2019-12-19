@@ -129,6 +129,7 @@ class QuantileCalibration:
         predicted_quantiles = self.isotonic_inverse.transform(quantiles)
         return predicted_quantiles
 
+
 def calibrate_posterior_predictive(post_pred, qc):
     """ Function to calibrate posterior predictive.
 
@@ -147,26 +148,32 @@ def calibrate_posterior_predictive(post_pred, qc):
     # out of memory error (on a 32GB machine for 8000 samples) in the next step.
     # This also helps to parallelize the task to all cpu cores.
     post_pred_shape = post_pred.shape
-    res_main_post_pred = da.from_array(np.array(post_pred),
-                                        chunks=(1000, # reduce this value if out of memory!
-                                                np.ceil(post_pred_shape[1]/dask.system.cpu_count())))
+    res_main_post_pred = da.from_array(
+        np.array(post_pred),
+        chunks=(
+            1000,  # reduce this value if out of memory!
+            np.ceil(post_pred_shape[1] / dask.system.cpu_count()),
+        ),
+    )
     # expand to 3D: axis 0: num observations; axis 1: num samples; axis 2: num samples
-    uncalibrated_pp_quantiles = (da.sum(res_main_post_pred.T[:, :, np.newaxis]
-                                            <= res_main_post_pred.T[:,np.newaxis,:], axis=1).T
-                                    / post_pred_shape[0])
+    uncalibrated_pp_quantiles = (
+        da.sum(
+            res_main_post_pred.T[:, :, np.newaxis] <= res_main_post_pred.T[:, np.newaxis, :], axis=1
+        ).T
+        / post_pred_shape[0]
+    )
 
     # calculate inverse R
-    inverse_calibrated_pp_quantiles = da.apply_along_axis(qc.inverse_transform,
-                                                            0,
-                                                            uncalibrated_pp_quantiles)
+    inverse_calibrated_pp_quantiles = da.apply_along_axis(
+        qc.inverse_transform, 0, uncalibrated_pp_quantiles
+    )
 
     # inverse CDF by looking up existing samples with np.quantile()
     da_combined = da.vstack([res_main_post_pred, inverse_calibrated_pp_quantiles.compute()])
     calibrated_post_pred = da.apply_along_axis(
-                                    lambda q: np.quantile(q[:post_pred_shape[0]],
-                                                            q[post_pred_shape[0]:],
-                                                            axis=0),
-                                    0,
-                                    da_combined).compute()
+        lambda q: np.quantile(q[: post_pred_shape[0]], q[post_pred_shape[0] :], axis=0),
+        0,
+        da_combined,
+    ).compute()
 
     return calibrated_post_pred

@@ -323,8 +323,10 @@ def calibration_plot(predicted_quantiles, model):
     plt.ylabel("Observed Quantiles")
     plt.legend()
 
-def plot_calibration_results(result, qc, func, interval=0.95, figsize=(8.5, 3.5),
-                                point_est="median"):
+
+def plot_calibration_results(
+    result, qc, func, interval=0.95, figsize=(8.5, 3.5), point_est="median"
+):
     """Plot the posterior predictive before and after calibration
 
     Args:
@@ -338,7 +340,6 @@ def plot_calibration_results(result, qc, func, interval=0.95, figsize=(8.5, 3.5)
         point_est: indicate whether to use mean or median as the point estimate
     """
     assert point_est in {"mean", "median"}, "Point estimate must be either 'mean' or 'median'"
-
 
     x = result["X_test"].ravel()
     post_pred = result["post_pred"]
@@ -482,6 +483,7 @@ def check_convergence(res_main, res_holdout, func, plot=True, point_estimate="me
                     "maximum Gelman-Rubin {max_rhat:.2f}".format(name=name, **diagnostics)
                 )
 
+
 def plot_calibration_slice(result, slice_locations, qc):
     """Plots calibrated vs uncalibrated posterior predictive cross-sections.
 
@@ -491,28 +493,36 @@ def plot_calibration_slice(result, slice_locations, qc):
         qc: a fitted QuantileCalibration object
     """
 
-    cal_post_pred = calibrate_posterior_predictive(result['post_pred'], qc)
+    cal_post_pred = calibrate_posterior_predictive(result["post_pred"], qc)
     slices = np.floor(cal_post_pred.shape[1] * slice_locations).astype(int)
 
-    uncal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.02),
-                                                   0, result['post_pred'][:,slices]))
-    cal_lower_limit = np.min(np.apply_along_axis(lambda x: np.quantile(x, 0.02),
-                                                 0, cal_post_pred[:,slices]))
+    uncal_lower_limit = np.min(
+        np.apply_along_axis(lambda x: np.quantile(x, 0.02), 0, result["post_pred"][:, slices])
+    )
+    cal_lower_limit = np.min(
+        np.apply_along_axis(lambda x: np.quantile(x, 0.02), 0, cal_post_pred[:, slices])
+    )
     lower_limit = min(uncal_lower_limit, cal_lower_limit)
 
-    uncal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.98),
-                                                   0, result['post_pred'][:,slices]))
-    cal_upper_limit = np.max(np.apply_along_axis(lambda x: np.quantile(x, 0.98),
-                                                 0, cal_post_pred[:,slices]))
+    uncal_upper_limit = np.max(
+        np.apply_along_axis(lambda x: np.quantile(x, 0.98), 0, result["post_pred"][:, slices])
+    )
+    cal_upper_limit = np.max(
+        np.apply_along_axis(lambda x: np.quantile(x, 0.98), 0, cal_post_pred[:, slices])
+    )
     upper_limit = max(uncal_upper_limit, cal_upper_limit)
 
-    x_values = result['X_test'][slices]
+    x_values = result["X_test"][slices]
 
-    fig, ax = plt.subplots(1,2)
+    fig, ax = plt.subplots(1, 2)
     for idx in range(len(slices)):
-        pp_df = pd.DataFrame({'calibrated':cal_post_pred[:,slices[idx]],
-                              'uncalibrated':result['post_pred'][:,slices[idx]]})
+        pp_df = pd.DataFrame(
+            {
+                "calibrated": cal_post_pred[:, slices[idx]],
+                "uncalibrated": result["post_pred"][:, slices[idx]],
+            }
+        )
         pp_df.plot.kde(ax=ax[idx], xlim=(lower_limit, upper_limit))
-        ax[idx].set_title(f'Posterior Predictive at x={x_values[idx][0]:.2f}')
-        ax[idx].set_xlabel('y')
+        ax[idx].set_title(f"Posterior Predictive at x={x_values[idx][0]:.2f}")
+        ax[idx].set_xlabel("y")
     fig.tight_layout()

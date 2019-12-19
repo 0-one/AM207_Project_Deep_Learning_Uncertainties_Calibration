@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def calibration_error(predicted_quantiles, levels=10):
     """Compute the calibration error
 
@@ -51,6 +52,7 @@ def picp(predicted_quantiles, interval=0.95):
     picp_value = np.mean((predicted_quantiles >= low) & (predicted_quantiles <= high))
     return picp_value
 
+
 def log_likelihood(func, post_pred, y):
     """Caluculate the exepcted log likelihood for the observed Y values given a
     posterior predictive.
@@ -69,11 +71,9 @@ def log_likelihood(func, post_pred, y):
     """
 
     dist = func(y.ravel())
-    ll = np.sum(
-            np.apply_along_axis(
-                lambda a: np.sum(dist.logpdf(a.reshape(-1, 1))),
-                0, post_pred
-            )
-        ) / post_pred.shape[0]
+    ll = (
+        np.sum(np.apply_along_axis(lambda a: np.sum(dist.logpdf(a.reshape(-1, 1))), 0, post_pred))
+        / post_pred.shape[0]
+    )
 
     return ll

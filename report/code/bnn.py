@@ -46,6 +46,7 @@ def feedforward(X, Y, width=5, hidden=1, sigma=1.0, noise=1.0):
     # Likelihood
     numpyro.sample("Y", dist.Normal(z, noise), obs=Y)
 
+
 def get_noise_model(noise=1.0):
     """ Construct a frozen scipy distribution that represents the noise model of the BNN.
 
