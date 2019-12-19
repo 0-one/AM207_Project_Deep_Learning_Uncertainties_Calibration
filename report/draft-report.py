@@ -921,14 +921,29 @@ plot_calibration_results(res_main, qc, func=gamma_polynomial, point_est="mean")
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
-# -
 
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Evaluation
+
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
+# # Summary of Findings
+#
+# | Dataset                          | Miscalibration         | Effect of Calibration                                        | Aleatoric | Epistemic |
+# | -------------------------------- | ---------------------- | ------------------------------------------------------------ | --------- | --------- |
+# | Homoscedastic, no gaps           | Wrong noise            | Aligns the posterior predictive with the data                | OK        | OK        |
+# | Homoscedastic, with missing data | None                   | Doesn't ruin a good model                                    | OK        | OK        |
+# | $---\texttt{"}---$               | Wrong prior            | Does not improve bad epistemic uncertainty                   | OK        | Incorrect |
+# | $---\texttt{"}---$               | Wrong noise            | Aligns aleatoric uncertainty with the data. Unreasonably shrinks or inflates epistemic uncertainty. | OK        | Incorrect |
+# | $---\texttt{"}---$               | Bias                   | Uniformly changes the uncertainty band to fit the data       | Incorrect | Incorrect |
+# | $---\texttt{"}---$               | VI approximation       | Does not improve bad epistemic uncertainty                   | OK        | Incorrect |
+# | $---\texttt{"}---$               | VI + wrong noise       | Improves aleatoric uncertainty. Unable to remedy epistemic uncertainty. | OK        | Incorrect |
+# | Heteroscedastic, no gaps         | Wrong noise (constant) | Makes the posterior predictive worse in specific segments    | Incorrect | Incorrect |
+# | Non-Gaussian data                | Wrong noise (Gaussian) | Significantly improves the posterior predictive, aligning it with the data | OK        | OK        |
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Evaluation of the Claims
 #
-# Our understanding is that the claims made by the authors of the paper are valid. In strict accordance with the definition of *quantile-calibrated* regression output, their method produces uncertainty estimates that are well-calibrated, *given enough i.i.d. data*.
+# Our understanding is that the claims made by the authors of the paper are valid. In strict accordance with the definition of *quantile-calibrated* regression output, their method produces uncertainty estimates that are well-calibrated, *given enough i.i.d. data*. The definition of a well-calibrated output used ... 
 #
 # **Advantages:**
 # - **Sound & simple:** The algorithm is statistically sound, is very simple to implement and easy to apply to any regression model.
@@ -944,6 +959,14 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # - **Distorts epistemic uncertainty:** The quantile-based calibration, however, doesn't know how to deal with epistemic uncertainty due to its reliance on data availability. In certain situations, this might destroy or distort originally reasonable epistemic uncertainty.
 # - **Should be used with care on heteroscedastic data**: The technique also cannot remedy bad posterior predictives obtained on heteroscedastic datasets, occasionally making them worse. The algorithm maps quantiles uniformly across the input space, which only makes sense if the model is capturing heteroscedastic noise.
 # - **Relies on data availability:** Heavy dependence on sufficient (ideally infinite) i.i.d. data might pose a problem in practice, as the dimensionality of the problem grows.
+
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
+# # Future Work
+
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
+# # Potential Directions of Research
+#
+# ...
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # References
