@@ -504,6 +504,8 @@ display(table)
 # Point estimates, like the mean, can then be computed for the calibrated posterior predictive.
 #
 # In our implementation, we obtain $R^{-1}$ by training isotonic regression in reverse (swapping the calibration dataset inputs). We obtain $\left[H\left(x_t\right)\right]^{-1}$ by doing a quantile lookup from the uncalibrated posterior predictive samples with ```numpy.quantile()```.
+#
+# To directly sample from the calibrated posterior predictive, we can also use the inverse CDF method. Recall that the CDF is $R\circ H\left(x_t\right)$, and the inverse is $H\left(x_t\right)^{-1}\circ R^{-1}$. We can therefore sample from a uniform distribution and then apply the calibrated inverse CDF to obtain further samples.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Diagnostics
