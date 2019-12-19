@@ -928,7 +928,9 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # # Evaluation
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# # Summary of Findings
+# # Summary of the Findings
+#
+# Let us first summarise the results from the conducted experiments, noting the effect that the proposed calibration algorithm has on the posterior predictives:
 #
 # | Dataset                          | Miscalibration         | Effect of Calibration                                        | Aleatoric | Epistemic |
 # | -------------------------------- | ---------------------- | ------------------------------------------------------------ | --------- | --------- |
@@ -945,22 +947,25 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Evaluation of the Claims
 #
-# Our understanding is that the claims made by the authors of the paper are valid. In strict accordance with the definition of *quantile-calibrated* regression output, their method produces uncertainty estimates that are well-calibrated, *given enough i.i.d. data*. The definition of a well-calibrated output used ... 
+# Overall, our understanding is that the claims made by the authors of the paper are valid. In strict accordance with the definition of *quantile-calibrated* regression output, their method produces uncertainty estimates that are well-calibrated, *given enough i.i.d. data*. The employed definition of a well-calibrated output involves matching the *marginal* probabilities of the response variable $Y$.
 #
-# **Advantages:**
+# ### Advantages:
 # - **Sound & simple:** The algorithm is statistically sound, is very simple to implement and easy to apply to any regression model.
-# - **Model-agnostic:** The calibration algorithm is model-agnostic, which is both its strength (as it can be applied in a post-processing step to any black-box model) and its weakness (since it doesn't understand the output of the model and may perform arbitrary mapping).
+# - **Model-agnostic:** The calibration algorithm is model-agnostic, which is both its strength (as it can be applied in a post-processing step to any black-box model) and its weakness (since it doesn't understand the output of the model and may perform arbitrary mapping of the quantiles).
 # - **Avoids overfitting:** The quantiles are not perfectly calibrated, which would pose an issue of overfitting, but are calibrated reasonably well to the empirical ones using a hold-out dataset or cross-validation.
-# - **Improves aleatoric uncertainty:** The calibration algorithm performs well in terms of aleatoric uncertainty on homoscedastic datasets.
+# - **Improves aleatoric uncertainty:** The calibration algorithm performs well in terms of aleatoric uncertainty on homoscedastic datasets with no missing data.
 # - **Excels on non-Gaussian data:** Due to the non-parametric nature of the algorithm, it also excels if the true noise of the data is not Gaussian.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# # Evaluation of the Claims: Failures
+# # Evaluation of the Claims (cont.)
 #
-# **Cases of failure:**
-# - **Distorts epistemic uncertainty:** The quantile-based calibration, however, doesn't know how to deal with epistemic uncertainty due to its reliance on data availability. In certain situations, this might destroy or distort originally reasonable epistemic uncertainty.
+# At the same time, the calibration algorithm has its limits, performs poorly or makes the posterior predictive worse in a number of scenarios.
+#
+# ### Cases of failure:
+# - **Distorts epistemic uncertainty:** The quantile-based calibration doesn't know how to deal with epistemic uncertainty due to its reliance on data availability. In certain situations, this might destroy or distort originally reasonable epistemic uncertainty.
+# - **Can't fix a bad model:** The algorithm is unable to fix a bad model, e.g. the one with bias due to an incorrect combination of the prior and network architecture.
 # - **Should be used with care on heteroscedastic data**: The technique also cannot remedy bad posterior predictives obtained on heteroscedastic datasets, occasionally making them worse. The algorithm maps quantiles uniformly across the input space, which only makes sense if the model is capturing heteroscedastic noise.
-# - **Relies on data availability:** Heavy dependence on sufficient (ideally infinite) i.i.d. data might pose a problem in practice, as the dimensionality of the problem grows.
+# - **Needs a lot of data:** Heavy dependence on sufficient (ideally infinite) i.i.d. data might pose a problem in practice, as the dimensionality of the problem grows.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Future Work
