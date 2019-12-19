@@ -10,9 +10,9 @@
 #       format_version: '1.5'
 #       jupytext_version: 1.3.0
 #   kernelspec:
-#     display_name: Python [conda env:numpyro]
+#     display_name: Python 3
 #     language: python
-#     name: conda-env-numpyro-py
+#     name: python3
 # ---
 
 # + [markdown] {"slideshow": {"slide_type": "skip"}}
@@ -83,6 +83,7 @@ DEBUG = False
 # 5. Experiments
 # 6. Evaluation of the Claims
 # 7. Future Work
+# 8. References
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Problem Statement
@@ -303,21 +304,32 @@ vi.plot_loss()
 # # Existing Work
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# # Literature Review
+# # Importance of Uncertainty Assessment
 #
-# <mark>To be filled...</mark>
+# **Scenarios:** Correct uncertainty estimation is crucial in multiple machine learning and statistical modeling applications. [[Tagasovska & Lopez-Paz, 2018]](http://bayesiandeeplearning.org/2018/papers/31.pdf) list numerous scenarios in which correct accounting for prediction uncertainty is paramount for the usefulness of a forecasting procedure. These include: dealing with anomalies (outliers, out-of-distribution test examples, adversarial examples), assessing when to delegate a prediction to a human or simply comparing and interpreting models.
+#
+# Apart from the assessment of overall uncertainty, it is crucial in many settings to be able to distinguish between the reducible (**epistemic** or statistical) and irreducible (**aleatoric** or systematic) uncertainty [[Hullermeier & Waegeman, 2019]](https://arxiv.org/pdf/1910.09457.pdf) (see also [[Der Kiureghian & Ditlevsen, 2009]](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.455.9057&rep=rep1&type=pdf) for a discussion of sources of uncertainty).
+#
+# **Calibration:** The need for high-quality measurement of uncertainty in modeling naturally entails a question of assessing how suited different models are for representing the uncertainty. The ability of a model to properly capture uncertainty is referred to as model **calibration**, while **miscalibration** is the discrepancy between model (subjective) forecasts and (empirical) long-run frequencies in the frequentist paradigm [[Lakshminarayanan et al., 2017]](https://papers.nips.cc/paper/7219-simple-and-scalable-predictive-uncertainty-estimation-using-deep-ensembles.pdf). Importantly, predictions may be accurate but still miscalibrated, i.e. the model might correctly label the test data, but produce wrong conclusions on how frequent, given the input data, a particular label should be. Indeed, despite the tremendous advances in prediction accuracy achieved with neural networks, many of the modern machine learning models turn out to be miscalibrated [[Guo et al. 2017]](https://arxiv.org/abs/1706.04599).
+
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
+# # Improving Calibration of Neural Networks
+#
+# **Research directions:** The Bayesian approach is believed to provide a general and principled framework for measuring uncertainty in machine learning [[Gal, 2016]](http://mlg.eng.cam.ac.uk/yarin/thesis/thesis.pdf). By putting priors on weights of the network, Bayesian neural networks produce predictive posterior distributions allowing for assessment of uncertainty related to forecasts (see e.g. [[McKay, 1992]](https://thesis.library.caltech.edu/25/2/MacKay_djc_1992_revised_by_author.pdf); [[Neal, 1995]](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.446.9306&rep=rep1&type=pdf)). Unfortunately, Bayesian inference methods in deep learning are almost always approximate and computationally expensive. As a result, the research community focused on improving the efficiency of obtaining Bayesian solutions, approximating Bayesian results or bypassing the burden of Bayesian inference in general.
+#
+# **Methods:** A variety of techniques to efficiently obtain correct uncertainty estimates for neural networks have been studied. These include Dropout [[Gal & Ghahramani, 2016]](https://arxiv.org/abs/1506.02142); [[Phan et al., 2019]](https://uwaterloo.ca/waterloo-intelligent-systems-engineering-lab/publications/bayesian-synthetic); [[Maeda, 2014]](https://arxiv.org/abs/1412.7003), different types of ensembling [[Tomczak et al., 2018]](http://approximateinference.org/2018/accepted/TomczakEtAl2018.pdf), [[Pearce et al., 2019]](https://arxiv.org/abs/1810.05546), extending BNNs with latent variables [[Depeweg et al., 2018]](https://arxiv.org/abs/1710.07283), probabilistic backpropagation [[Hernandez-Lobato & Adams, 2015]](https://arxiv.org/pdf/1502.05336.pdf), Laplace approximation [[Foong et al., 2019]](https://arxiv.org/abs/1906.11537), simultaneous quantile regression [[Tagasovska & Lopez-Paz, 2019]](https://arxiv.org/pdf/1811.00908.pdf) or stochastic weight averaging [[Maddox et al., 2019]](https://arxiv.org/abs/1902.02476). [[Loquericio et al., 2019]](https://arxiv.org/abs/1907.06890) presented a framework for uncertainty estimation of neural network predictions using a combination of Monte-Carlo sampling and Gaussian belief networks claiming that the framework meets three postulates: **(1)** it is independent of the network architecture, **(2)** it does not require changes in the optimization process and **(3)** it can be applied to already trained architectures.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Contribution: The Calibration Algorithm
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# # The Calibration Algorithm
+# # Contribution of the Reviewed Paper
 #
-# **Proposition:** The authors of the paper propose a simple **calibration algorithm** for regression. In the case of Bayesian models, the procedure ensures that uncertainty estimates are well-calibrated, given enough data. In other words, the resulting posterior predictive aligns with the data, i.e. the observations fall within each posterior predictive interval  (e.g. the 95% interval) with a corresponding probability.
+# **Proposition:** [[Kuleshov et al., 2018]](https://arxiv.org/abs/1807.00263) propose a simple **calibration algorithm** for regression. The method is heavily inspired by Platt scaling [[Platt, 1999]](https://www.researchgate.net/publication/2594015_Probabilistic_Outputs_for_Support_Vector_Machines_and_Comparisons_to_Regularized_Likelihood_Methods), which consists of training an additional sigmoid function to map potentially non-probabilistic outputs of a classifier to empirical probabilities. Originally Platt scaling was proposed for calibration of support vector machines but subsequently extended to other classification algorithms.
 #
-# ###### Unique Contribution:
-# - The procedure is universally applicable to any **regression** model, be it Bayesian or frequentist. It extends previous work on calibration methods for classification.
-# - Compared to alternative approaches, the method doesn't require modification of the model. Instead, the algorithm is applied to the output of any existing model in a postprocessing step.
+# **Unique contribution:** The study contributes to the subject literature by:
+# - extending the recalibration methods used so far for classification tasks (Platt scaling) to regression;
+# - proposing a procedure that is universally applicable to any regression model, be it Bayesian or frequentist and does not require modification of the model. Instead, the algorithm is applied to the output of any existing model in a postprocessing step.
 #
 # **Claim:** The authors claim that the method outperforms other techniques by consistently producing well-calibrated forecasts, given enough i.i.d. data. Based on their experiments, the procedure also improves predictive performance in several tasks, such as time-series forecasting and reinforcement learning.
 
@@ -945,23 +957,35 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # - **Relies on data availability:** Heavy dependence on sufficient (ideally infinite) i.i.d. data might pose a problem in practice, as the dimensionality of the problem grows.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
-# # Next Steps
+# # References
 #
-# - Compute additional metrics for all the models
-#     - e.g. log-likelihood (Ben)
-#     - or one of Google Brain's more advanced metrics
-# - Evaluate the effect of calibration on point estimates (Ben)
-# - Test the algorithm's sensitivity to the amount of i.i.d. data
-#     - the whole calibration dataset is small
-#     - high dimensionality of X
-#     - there are a few data points in the hold out dataset in the region where there is a gap in the original dataset
-# - See if the 90% interval is more smooth (Dmitry, Ben)
-# - Investigate the cases of uninformative calibration (Dmitry)
-# - Add missing sections of the report:
-#     - Literature review (Piotr)
-#     - Evaluation (everyone)
-#     - Future work (Ben, Dmitry)
-# - Review and correct the draft report (everyone)
-# -
+# - Depeweg S., Hernandez-Lobato J. M., Doshi-Velez F., Udluft S., 2018, **[Decomposition of Uncertainty in Bayesian Deep Learning for Efﬁcient and Risk-sensitive Learning](https://arxiv.org/abs/1710.07283)**
+# - Der Kiureghian A., Ditlevsen O., 2009, **[Aleatory or epistemic? Does it matter?](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.455.9057&rep=rep1&type=pdf)**
+# - Foong A. Y. K., Li Y., Hernandez-Lobato J. M., Turner R. E., 2019, **[‘In-Between’ Uncertainty in Bayesian Neural Networks](https://arxiv.org/abs/1906.11537)**
+# - Gal Y., 2016, **[Uncertainty in Deep Learning](http://mlg.eng.cam.ac.uk/yarin/thesis/thesis.pdf)**
+# - Gal Y., Ghahramani, Z., 2016, **[Dropout as a Bayesian approximation: Representing model uncertainty in deep learning](https://arxiv.org/abs/1506.02142)**
+# - Guo Ch., Pleiss G., Sun Y., Weinberger K. Q., 2017, **[On Calibration of Modern Neural Networks](https://arxiv.org/abs/1706.04599)**
+# - Hernandez-Lobato J. M., Adams R., 2015, **[Probabilistic backpropagation for scalable learning of Bayesian neural networks](https://arxiv.org/pdf/1502.05336.pdf)**
 
 
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
+# # References (cont.)
+#
+# - Hullermeier E., Waegeman W., 2019, **[Aleatoric and Epistemic Uncertainty in Machine Learning: A Tutorial Introduction](https://arxiv.org/pdf/1910.09457.pdf)**
+# - Kuleshov V., Fenner N., Ermon S., 2018, **[Accurate Uncertainties for Deep Learning Using Calibrated Regression](https://arxiv.org/abs/1807.00263)**
+# - Lakshminarayanan B., Pritzel A., Blundell Ch., 2017, **[Simple and Scalable Predictive Uncertainty Estimation Using Deep Ensembles](https://papers.nips.cc/paper/7219-simple-and-scalable-predictive-uncertainty-estimation-using-deep-ensembles.pdf)**
+# - Loquericio A., Scaramuzza D., Segu M., 2019, **[A General Framework for Uncertainty Estimation in Deep Learning](https://arxiv.org/abs/1907.06890)**
+# - Maddox W. J., Garipov T., Izmailov P., Vetrov D., Wilson A. G., 2019, **[A Simple Baseline for Bayesian Uncertainty in Deep Learning](https://arxiv.org/abs/1902.02476)**
+# - Maeda S., 2014, **[A Bayesian Encourages Dropout](https://arxiv.org/abs/1412.7003)**
+# - McKay D., 1992, **[Bayesian Methods for Adaptive Models](https://thesis.library.caltech.edu/25/2/MacKay_djc_1992_revised_by_author.pdf)**
+
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
+# # References (cont.)
+#
+# - Neal R., 1995, **[Bayesian Learning for Neural Networks](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.446.9306&rep=rep1&type=pdf)**
+# - Pearce T., Leibfried F., Brintrup A., Zaki M., Neely A., 2019, **[Uncertainty in Neural Networks: Approximately Bayesian Ensembling](https://arxiv.org/abs/1810.05546)**
+# - Phan B., Khan S., Salay R., Czarnecki K., 2019, **[Bayesian Uncertainty Quantification with Synthetic Data](https://uwaterloo.ca/waterloo-intelligent-systems-engineering-lab/publications/bayesian-synthetic)**
+# - Platt J., 1999, **[Probabilistic Output for Support Vector Machines and Comparisons to Regularized Likelihood Methods](https://www.researchgate.net/publication/2594015_Probabilistic_Outputs_for_Support_Vector_Machines_and_Comparisons_to_Regularized_Likelihood_Methods)**
+# - Tagasovska N., Lopez-Paz D., 2018, **[Frequentist uncertainty estimates for deep learning](http://bayesiandeeplearning.org/2018/papers/31.pdf)**
+# - Tagasovska N., Lopez-Paz D., 2019, **[Single-Model Uncertainties for Deep Learning](https://arxiv.org/pdf/1811.00908.pdf)**
+# - Tomczak M. B., Swaroop S., Turner R. E., 2018, **[Neural network ensembles and variational inference revisited](http://approximateinference.org/2018/accepted/TomczakEtAl2018.pdf)**
