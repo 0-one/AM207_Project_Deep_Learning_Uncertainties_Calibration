@@ -609,7 +609,7 @@ plot_calibration_results(res_main, qc, func=polynomial, point_est="mean")
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Conditional Distributions
 #
-# Each of the charts below corresponds to a cross-section at a specific value of $X$, showing the conditional posterior predictive of at that point. We see that the calibrated posterior predictive in this experiment is more spread out, which agrees with the wider uncertainty bands. We also observe that the calibrated posterior predictive is not smooth and not unimodal compared to the uncalibrated one. This is either an artifact of insufficient data, or the algorithm is in principle unable to reproduce the true unimodal Gaussian distribution:
+# Each of the charts below corresponds to a cross-section at a specific value of $X$, showing the conditional posterior predictive of at that point. We see that the calibrated posterior predictive in this experiment is more spread out, which agrees with the wider uncertainty bands. We also observe that the calibrated posterior predictive is not smooth and not unimodal compared to the uncalibrated one:
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
