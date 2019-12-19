@@ -9,7 +9,7 @@ dependencies:
   - pandas
   - scikit-learn
   - scipy
-  - dask
+  - dask>=2.9.0
   - pip
   - pip:
     - numpyro==0.2.3
