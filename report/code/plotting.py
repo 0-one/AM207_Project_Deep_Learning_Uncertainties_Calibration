@@ -9,9 +9,7 @@ from matplotlib.patches import Rectangle
 
 from code.calibration import calculate_quantiles, calibrate_posterior_predictive
 from code.inference import run_diagnostics
-from code.metrics import calibration_error, picp, log_likelihood
-
-from code.calibration import calibrate_posterior_predictive
+from code.metrics import calibration_error, picp
 
 # Colors used for plotting the posterior predictives
 COLORS = {
