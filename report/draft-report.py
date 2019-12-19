@@ -590,16 +590,19 @@ plot_calibration_results(res_main, qc, func=polynomial)
 
 # + [markdown] {"slideshow": {"slide_type": "-"}}
 # Both quantitative metrics show significant improvement. The absolute value of the calibration error depends on binning (here we use 10 equally spaced quantiles).
-# -
 
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
 # The charts below show the means of the calibrated and uncalibrated posterior predictives, together with the true mean.
 #
 # We see that the means coincide with the medians shown above. This is expected as our data is generated with Gaussian noise, which has a symmetric distribution. For all subsequent experiments with Gaussian noise, we only show the median plots.
 
+# + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=polynomial, point_est="mean")
 
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
 # The charts below show the calibrated posterior predictive constructed according to Detailed Steps Part(2). Each chart corresponds to a specific X value, showing the details of at that point. We see that the calibrated posterior predictive in this experiment is more spread out. This agrees with the wider uncertainty bands. We observe that the calibrated posterior predictive is not smooth compared to the uncalibrated one.
 
+# + {"slideshow": {"slide_type": "-"}}
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
@@ -892,16 +895,19 @@ check_convergence(res_main, res_holdout, func=gamma_polynomial, plot=DEBUG)
 
 # + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=gamma_polynomial)
-# -
 
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
 # Here, we observe that due to the non-symmetric noise in our data generation, the median and the mean of the uncalibrated posterior predictive differ. It appears that the median deviate further from the true median.
 #
 # We see that calibration improves the posterior predictive median while not affecting the mean.
 
+# + {"slideshow": {"slide_type": "-"}}
 plot_calibration_results(res_main, qc, func=gamma_polynomial, point_est="mean")
 
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
 # Although the data is generated with non-gaussian noise, our model uses a guassian noise model. Therefore, the uncalibrated predictive has a symmetric distribution. We observe that in this case, the calibration algorithm is able to adjust the posterior predictive to become skewed to track the data.
 
+# + {"slideshow": {"slide_type": "-"}}
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
