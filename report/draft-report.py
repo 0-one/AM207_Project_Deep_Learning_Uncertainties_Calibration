@@ -15,13 +15,7 @@
 #     name: python3
 # ---
 
-# + [markdown] {"slideshow": {"slide_type": "skip"}}
-# **Requirements:** Please install NumPyro by running:
-#
-# ```$ pip install --upgrade numpyro```
-
 # + {"slideshow": {"slide_type": "skip"}}
-# Ordinary Numpy (without an autograd/JAX wrapper around it)
 import numpy as np
 import numpyro
 import pandas as pd
