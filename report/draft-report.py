@@ -15,6 +15,9 @@
 #     name: python3
 # ---
 
+# + [markdown] {"slideshow": {"slide_type": "skip"}}
+# Note: if no plots are visible, please trust the notebook file from the Jupyter Notebook's menu (File->Trust notebook).
+
 # + {"slideshow": {"slide_type": "skip"}}
 import numpy as np
 import numpyro
