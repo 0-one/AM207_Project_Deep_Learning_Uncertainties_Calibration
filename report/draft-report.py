@@ -32,6 +32,7 @@ from IPython.display import display
 import matplotlib.pyplot as plt
 # %matplotlib inline
 
+from code.calibration import calculate_quantiles
 from code.data import generate_data
 from code.helpers import sample_and_plot, fit_and_plot, calibrate
 from code.plotting import *
@@ -806,7 +807,7 @@ plot_calibration_results(res_main, qc, func=func)
 
 # + {"slideshow": {"slide_type": "-"}}
 # Define the true function and generate observations
-heteroscedastic = lambda x: heteroscedastic_base(x, base_std=0.5)
+heteroscedastic = lambda x: heteroscedastic_base(x, base_std=1.0)
 heteroscedastic.latex = r"$y_i = 0.1x_i^3 + \varepsilon_i$"
 
 data_points = [
@@ -816,33 +817,45 @@ df = generate_data(heteroscedastic, points=data_points, seed=4)
 df_hold = generate_data(heteroscedastic, points=data_points, seed=1)
 
 # Plot the data
-plot_true_function(func, df, title=f"True Function: {heteroscedastic.latex}")
+plot_true_function(heteroscedastic, df, title=f"True Function: {heteroscedastic.latex}")
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Heteroscedastic Noise: Recalibration
 #
 # When a BNN is unable to capture heteroscedastic noise, the quantile calibration only makes the posterior predictive worse. The central region of aleatoric uncertainty that the original posterior predictive captured correctly is now inflated. The resulting model might be producing better uncertainty on average (which is reflected in the metrics), but is less precise in specific segments of the input space:
 
-# + {"slideshow": {"slide_type": "skip"}}
+# + {"slideshow": {"slide_type": "-"}}
 model_params = {
     "hidden": 1,
     "width": 50,
     "sigma": 1.0,
     "noise": 0.5,
 }
+
 # Obtain posterior predictives for both datasets and train isotonic regression on the hold-out set
-res_main, res_holdout, qc = calibrate(df, df_hold, **model_params, **sampler_params)
-# Ensure that the sampler has converged
-check_convergence(res_main, res_holdout, func=heteroscedastic, plot=DEBUG)
-
-# + {"slideshow": {"slide_type": "-"}}
+res_main, res_holdout, qc = calibrate(df, df_hold, inference="VI", **model_params, **vi_params)
+# Plot the results before and after calibration
 plot_calibration_results(res_main, qc, func=heteroscedastic)
-# -
 
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
 # From the plots below, we see how the calibration transforms the posterior predictive. We see that at both X=-2 and X=0, the transformation is the same. This agrees with the observation above, that the uncertainty band widens uniformly across all values of X.
 
+# + {"slideshow": {"slide_type": "-"}}
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 
+# + [markdown] {"slideshow": {"slide_type": "slide"}}
+# # Issue with the Definition of Quantile Calibration
+#
+# The resulting posterior predictive after recalibration does a bad job of capturing heteroscedastic noise in the previous example. Yet, from the perspective of the calibration error and the calibration plot, calibration has been significantly improved:
+
+# + {"slideshow": {"slide_type": "-"}}
+# Visualize the calibration plot
+predicted_quantiles = calculate_quantiles(res_main["post_pred_x"].T, df[["y"]].values)
+calibration_plot(predicted_quantiles, qc.isotonic, title="Calibration Plot for the Heteroscedastic Example")
+
+
+# + [markdown] {"slideshow": {"slide_type": "-"}}
+# The issue lies in the definition of quantile calibration. The algorithm aims to match the predicted to empirical quantiles across the whole input space. That, however, does not necessarily produce posterior predictives that align with the data.
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Non-Gaussian Data

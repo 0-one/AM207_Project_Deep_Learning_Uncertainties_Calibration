@@ -276,7 +276,7 @@ def plot_ecdf(predicted_quantiles):
     plt.ylabel(r"Empirical Quantiles, $\hat{P}(p_t)$")
 
 
-def calibration_plot(predicted_quantiles, model):
+def calibration_plot(predicted_quantiles, model, title=None):
     """Visualize a calibration plot suggested by the authors
 
     Args:
@@ -316,7 +316,7 @@ def calibration_plot(predicted_quantiles, model):
         label="Calibrated",
     )
     plt.plot([0, 1], [0, 1], color="tab:grey", linestyle="--", zorder=0)
-    plt.title("Calibration Plot")
+    plt.title(title or "Calibration Plot")
     plt.xlabel("Expected Quantiles")
     plt.ylabel("Observed Quantiles")
     plt.legend()
