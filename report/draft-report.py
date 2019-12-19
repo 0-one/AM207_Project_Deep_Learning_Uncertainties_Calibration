@@ -973,7 +973,16 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Potential Directions of Research
 #
-# ...
+# Benjamin Yuen and Dmitry Vukolov are looking forward to continuing the research during the Spring semester. The quantile-calibration algorithm is simple and has many shortcomings. Therefore, among the possible directions of future research we see:
+#
+# - Additional research and incremental tweaks of the quantile calibration algorithm
+#   - Investigation of the relationship between the log-likelihood and calibration, trying to understand if calibration improves the log-likelihood
+#   - Application of the quantile calibration algorithm to maximum-likelihood models
+#   - Making the calibration procedure dependent on $X$ by binning or through other means
+# - Beyond the calibration method
+#     - Reproduction and comparative analysis of alternative algorithms to estimate aleatoric and epistemic uncertainty from data
+#     - Evaluation of existing techniques for modeling heteroscedastic noise with Bayesian neural networks
+#     - Research into quantitative metrics for epistemic uncertainty, that are useful for a downstream task
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # References
