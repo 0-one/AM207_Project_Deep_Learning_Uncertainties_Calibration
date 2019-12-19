@@ -175,7 +175,7 @@ mcmc = sample_and_plot(df, func, **model_params, **sampler_params)
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Wrong Prior: Too Narrow
 #
-# Lower variance of the prior prevents the model from adequately reflecting epistemic uncertainty in areas where no data is available. It also introduces bias: a neural network with 50 nodes in a single hidden layer (i.e. 151 weights) is unable to fit a cubic function:
+# A prior which is too restrictive prohibits the network from fitting the data and indicating the areas of higher epistemic uncertainty. It introduces bias: a neural network with 50 nodes in a single hidden layer (i.e. 151 weights) is unable to fit a cubic function. Ideally, we should fix that by selecting wider priors and allowing more flexibility in the model:
 
 # + {"slideshow": {"slide_type": "-"}}
 model_params = {
