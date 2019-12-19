@@ -33,8 +33,7 @@ import matplotlib.pyplot as plt
 # %matplotlib inline
 
 from code.data import generate_data
-from code.helpers import build_model, sample_and_plot, fit_and_plot, calibrate
-from code.inference import sample, simulate_pp
+from code.helpers import sample_and_plot, fit_and_plot, calibrate
 from code.plotting import *
 
 # + {"slideshow": {"slide_type": "skip"}}
@@ -843,39 +842,6 @@ plot_calibration_results(res_main, qc, func=heteroscedastic)
 # From the plots below, we see how the calibration transforms the posterior predictive. We see that at both X=-2 and X=0, the transformation is the same. This agrees with the observation above, that the uncertainty band widens uniformly across all values of X.
 
 plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
-
-# + [markdown] {"slideshow": {"slide_type": "slide"}}
-# # Discussion: Modeling Heteroscedasticity
-#
-# Our attempts to model heteroscedasticity by specifying constant noise in the likelihood function of a BNN so far were not very successful. We did observe oscillations of the prediction, but only on datasets with very few points or on artificially constructed datasets that do not occur in real-world scenarios:
-
-# + {"slideshow": {"slide_type": "-"}}
-# Generate a heteroscedastic dataset with very few observations
-data_points = [{"n_points": 50, "xlim": [-4, 4]}]
-df_few = generate_data(heteroscedastic, points=data_points, seed=2)
-
-# Generate another dataset in a special way: with points at the edges
-# of the 95% predictive interval, alternating along the X values:
-x_ = np.linspace(-4, 4, num=50)
-low_, high_ = heteroscedastic(x_[0::2]).ppf(0.025), heteroscedastic(x_[1::2]).ppf(0.975)
-df_special = pd.DataFrame(
-    {"x": np.concatenate((x_[0::2], x_[1::2])), "y": np.concatenate((low_, high_))}
-)
-
-# Obtain and plot the posterior predictive for both datasets
-datasets = [df_few, df_special]
-titles = ["Dataset with Few Observations", "Artificially Constructed Dataset"]
-
-fig, ax = plt.subplots(1, 2, figsize=(8.5, 3.5), sharey=True, tight_layout=True)
-
-for axis, data, title in zip(ax, datasets, titles):
-    model = build_model(data, width=10, hidden=2, sigma=1.5, noise=0.5)
-    mcmc = sample(model, **sampler_params, seed=0, summary=False)
-    X_test = np.linspace(data.x.min(), data.x.max(), num=1000)[:, np.newaxis]
-    post_pred = simulate_pp(model, mcmc, X_test, seed=1)
-    plot_posterior_predictive(
-        X_test, post_pred, func=heteroscedastic, df=data, legend=False, ax=axis, title=title
-    )
 
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
