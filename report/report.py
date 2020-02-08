@@ -947,11 +947,11 @@ plot_calibration_slice(res_main, np.array([0.25, 0.5]), qc)
 # | -------------------------------- | ---------------------- | ------------------------------------------------------------ | --------- | --------- |
 # | Homoscedastic, no gaps           | Wrong noise            | Aligns the posterior predictive with the data                | OK        | OK        |
 # | Homoscedastic, with missing data | None                   | Doesn't ruin a good model                                    | OK        | OK        |
-# | $---\texttt{"}---$               | Wrong prior            | Does not improve bad epistemic uncertainty                   | OK        | Incorrect |
-# | $---\texttt{"}---$               | Wrong noise            | Aligns aleatoric uncertainty with the data. Unreasonably shrinks or inflates epistemic uncertainty. | OK        | Incorrect |
-# | $---\texttt{"}---$               | Bias                   | Uniformly changes the uncertainty band to fit the data       | Incorrect | Incorrect |
-# | $---\texttt{"}---$               | VI approximation       | Does not improve bad epistemic uncertainty                   | OK        | Incorrect |
-# | $---\texttt{"}---$               | VI + wrong noise       | Improves aleatoric uncertainty. Unable to remedy epistemic uncertainty. | OK        | Incorrect |
+# | $---\text{"}---$               | Wrong prior            | Does not improve bad epistemic uncertainty                   | OK        | Incorrect |
+# | $---\text{"}---$               | Wrong noise            | Aligns aleatoric uncertainty with the data. Unreasonably shrinks or inflates epistemic uncertainty. | OK        | Incorrect |
+# | $---\text{"}---$               | Bias                   | Uniformly changes the uncertainty band to fit the data       | Incorrect | Incorrect |
+# | $---\text{"}---$               | VI approximation       | Does not improve bad epistemic uncertainty                   | OK        | Incorrect |
+# | $---\text{"}---$               | VI + wrong noise       | Improves aleatoric uncertainty. Unable to remedy epistemic uncertainty. | OK        | Incorrect |
 # | Heteroscedastic, no gaps         | Wrong noise (constant) | Makes the posterior predictive worse in specific segments    | Incorrect | Incorrect |
 # | Non-Gaussian data                | Wrong noise (Gaussian) | Significantly improves the posterior predictive, aligning it with the data | OK        | OK        |
 
