@@ -75,14 +75,14 @@ DEBUG = False
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Outline
 #
-# 1. Problem Statement: Sources of Miscalibration
-# 2. Existing Work
-# 3. Contribution: The Calibration Algorithm
-# 4. Technical Details
-# 5. Experiments
-# 6. Evaluation of the Claims
-# 7. Future Work
-# 8. References
+# 1. [Problem Statement: Sources of Miscalibration](#Problem-Statement)
+# 2. [Existing Work](#Existing-Work)
+# 3. [Contribution: The Calibration Algorithm](#Contribution:-The-Calibration-Algorithm)
+# 4. [Technical Details](#Technical-Details)
+# 5. [Experiments](#Experiments)
+# 6. [Evaluation of the Claims](#Evaluation)
+# 7. [Future Work](#Future-Work)
+# 8. [References](#References)
 
 # + [markdown] {"slideshow": {"slide_type": "slide"}}
 # # Problem Statement
