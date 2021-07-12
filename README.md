@@ -48,19 +48,21 @@ Our aim is to establish a causal link between each aspect of the model-building 
 
 We evaluate the claims through a series of experiments on synthetic datasets and different sources of miscalibration. Our methodology is as follows:
 
-1. **Data Generation and Model Building:** We generate the data from a known true function with Gaussian or non-Gaussian noise. We then build multiple feedforward BNN models using:
+1. **Data Generation:** We generate the data from a known true function with Gaussian or non-Gaussian noise.
+
+2. **Model Building**: We then build multiple feedforward BNN models using:
    - different network architectures
    - several priors on the weights, depending on model complexity
    - different variance of the Gaussian noise in the likelihood function
 
-2. **Inference**: We obtain the posterior of the model by:
+3. **Inference**: We obtain the posterior of the model by:
 
    - sampling from it with the No-U-Turn algorithm
    - approximating the posterior using Variational Inference with reparametrization and isotropic Gaussians
 
    We check for convergence using trace plots, the effective sample size, and Gelman-Rubin tests. In the case of variational inference, we track the ELBO during optimization.
 
-3. **Recalibration**: Finally, we apply the proposed recalibration algorithm to the obtained model. We then visually compare the posterior predictives before and after calibration to the true distribution of the data. This allows us to identify scenarios where the algorithm works well and the cases of failure.
+4. **Recalibration**: Finally, we apply the proposed recalibration algorithm to the obtained model. We then visually compare the posterior predictives before and after calibration to the true distribution of the data. This allows us to identify scenarios where the algorithm works well and the cases of failure.
 
 See the full version of the [project report](https://raw.githubusercontent.com/0-one/AM207_Project_Deep_Learning_Uncertainties_Calibration/master/report/report.slides.pdf) for the summary of findings and conclusions.
 
